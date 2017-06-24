@@ -1,0 +1,35 @@
+\documentclass[a4paper]{article}
+
+\usepackage[separateanswersheet,calibration,nowatermark]{automultiplechoice}
+\usepackage{multicol}
+\usepackage{fp}
+
+\begin{document}
+
+\input{q.tex}
+
+\onecopy{10}{
+  Hi,
+
+  simple test with a (variable) separate answer sheet
+
+  \cleargroup{my}
+  
+  \shufflegroup{geography}
+  \copygroup[2]{geography}{my}
+  \shufflegroup{history}
+  \copygroup[2]{history}{my}
+  
+  \insertgroup{my}
+
+  % answers
+  \clearpage
+  \AMCformBegin
+  This is the answer sheet: all answers are to be ticked on this page to
+  be taken into account.
+  \vspace{2ex}
+  \AMCform
+
+}
+
+\end{document}

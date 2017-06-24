@@ -48,6 +48,21 @@ Process: generating pdf and finding box positions
     - saved to layout.sqlite
     - it checks for instance that marks are at the same place in all pages 
 
+Things about latex: how it generates the xy file
+- using `/usr/share/texmf/tex/latex/AMC/automultiplechoice.sty`
+- wrongchoice{inanswer}{content} # inanswer = what to show in answer box for separateanswersheet
+- … AMC@box{#1}{}
+- … AMC@box{inanswer}{}
+- …… AMC@answerBox@{}{#2}{1}{case:\AMCid@name:\the\AMCid@quest,\the\AMCrep@count}
+- …… AMC@answerBox@{}{}{1}{case:\AMCid@name:\the\AMCid@quest,\the\AMCrep@count}
+- ……… draw the box, and,
+- ……… build a commandname based on the `\AMC@shapename` (can plug new ones...)
+- ……… compute Z = AMCchoiceLabelFormat{#1} = AMCchoiceLabelFormat{}
+- ……… AMC@shape@square{Z}{#2}{#3}{#4}
+- ……… AMC@shape@square{Z}{}{1}{case:...}
+
+The scanned box content now ends up in the db, in `capture.sqlite`.
+
 #### Alternative, prototypes etc
 
 ----

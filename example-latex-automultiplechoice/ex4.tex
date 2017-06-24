@@ -1,0 +1,61 @@
+\documentclass[a4paper]{article}
+
+\usepackage[calibration,nowatermark]{automultiplechoice}
+\usepackage{multicol}
+\usepackage{fp}
+\usepackage{pgffor}
+
+\begin{document}
+
+\input{q.tex}
+
+\newcounter{ocrfieldcount}[AMCquestionaff]
+\newcommand{\ocrfield}[1]{
+  \AMCboxDimensions{shape=square,height=2em,width=1.5em,down=.5em,rule=.5pt}
+  \foreach \n in {1,...,#1}{%
+    \hspace{-\fboxrule}%
+    \csname AMC@answerBox@\endcsname{}{}{1}{ocr:\csname AMCid@name\endcsname:\the\csname AMCid@quest\endcsname,\theocrfieldcount}\theocrfieldcount\stepcounter{ocrfieldcount}%
+  }
+}
+
+
+\newcommand{\letterboxes}{}
+
+\onecopy{10}{
+  Hi,
+
+  \namefield{\fbox{
+      \begin{minipage}{15em}
+        Name and surname:\vspace*{3ex}\par
+        \noindent\dotfill\vspace{2mm}
+      \end{minipage}
+  }}
+
+  let's have a free answer and see if we can extract the box coordinates
+
+  \begin{question}{Ghana}
+    What is the capital of Ghana?
+    \begin{choiceshoriz}
+      \correctchoice[{OK}]{Accra} % would appear in answer box
+      \wrongchoice[{HUM}]{Addis Abeba}
+      \wrongchoice{Ankara}
+      \wrongchoice{Apia}
+    \end{choiceshoriz}
+  \end{question}
+
+  \insertgroup[1]{history}
+  
+  \begin{question}{TRUEOCR}
+    enter for : \ocrfield{5}
+  \end{question}
+
+  \begin{question}{TRUEOCR2}
+    FOR? \ocrfield{5}
+    enter in : \ocrfield{5}
+  \end{question}
+
+  \insertgroup[1]{history}
+
+}
+
+\end{document}
