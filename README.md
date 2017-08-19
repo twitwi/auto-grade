@@ -63,6 +63,30 @@ Things about latex: how it generates the xy file
 
 The scanned box content now ends up in the db, in `capture.sqlite`.
 
+How does it get the blue and pink boxes.
+
+In AMC-detect.cc, "pink", due to illustr_mode==ILLUSTR_BOX, itself due to the main() (or the pixel version with the -k option).
+The AMC-detect is the default called when Subprocess.pm is used with overriding "mode", so in `AMC-analyse.pl:402`.
+Then the process (pl) gets `$process->command` that is parsed in .cc (via IPC) `sscanf(commande,`
+
+In the end the only real solution seem to need to patch AMC-detect.cc, so we can set the default to not drawing anything (e.g., illustr_mode = 0), and after a backup of AMC-detect, do
+
+```
+diff AMC-detect{-ori,}.cc
+77a78
+> #define ILLUSTR_DEFAULT 0
+800a802
+>     if (illustr_mode == ILLUSTR_DEFAULT) delta = 0;
+1013c1015
+<   int illustr_mode=ILLUSTR_BOX;
+---
+>   int illustr_mode=ILLUSTR_DEFAULT;
+```
+
+`make AMC-detect && sudo cp AMC-detect /usr/lib/AMC/exec/AMC-detect`
+
+
+
 #### Alternative, prototypes etc
 
 ----
