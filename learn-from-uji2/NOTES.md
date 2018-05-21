@@ -48,3 +48,13 @@ We recrop at export time
         convert $i -gravity center -background white -extent 80x90 ../all-jpg/${i%.png}.jpg
     done
     
+
+
+~~~
+for i in *.png; do ii=$(sed -e 's@^test-@@g' -e 's@-.*@@g' <<<$i); j=${i#test-$ii-}; cl=$(sed -e 's@^\(.\).*@\1@g' <<<$j); mode=$(sed 's@.-\(.*\).png@\1@g' <<<$j);  mkdir -p "$mode/$cl";  mv "$i" "$mode/$cl" ; done 
+
+
+mv test-*-.-test.png …/
+# all in upper case
+for d  in *; do mv $d/* ${d^^}/ ; rmdir $d; done
+~~~

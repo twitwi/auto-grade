@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>title</title>
+        <link rel="stylesheet" href="style.css">
+        <script src="script.js"></script>
+    </head>
+    <body>
+        <button onclick="test1()">TEST1</button>
+        <hr/>
+        <button onclick="test2()">TEST2</button>
+        <hr/>
+        <img id="img" />
+
+        <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+
+        <script>
+
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        // verify our websocket connection is established
+        socket.on('connect', function() {
+            console.log('Websocket connected!');
+        });
+
+        socket.on('test1rep', function(msg) {
+            console.log(msg);
+        });
+        function test1() {
+            socket.emit('test1', {size: 'normal', teams: 2, dictionary: 'Simple'});
+        }
+
+        emit2Returns = {}
+        function emit2(name, data, onReturn) {
+            var id = "RANDOM"+Math.random()
+            emit2Returns[id] = onReturn
+            data._id = id
+            socket.emit(name, data)
+        }
+        socket.on('test2rep', function(msg) {
+            var cb = emit2Returns[msg._id]
+            delete msg._id
+            if (cb) {
+                cb(msg)
+            }
+        });
+        function test2() {
+            emit2('test2_load_all', {file: 'test3/capture.sqlite'}, function(msg) {
+                //console.log("RETURNED", msg)
+                var imdata = msg[42][2][13]
+                //console.log(imdata)
+                document.getElementById('img').src = 'data:image/png;base64,'+imdata
+            })
+        }
+        </script>
+    </body>
+</html>

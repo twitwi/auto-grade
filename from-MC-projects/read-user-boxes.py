@@ -27,10 +27,11 @@ def show_auto_grid(l):
 conn = sqlite3.connect('capture.sqlite')
 c = conn.cursor()
 
-user = 1
+user = 42
 c.execute('''SELECT *
              FROM capture_zone
              WHERE student=? AND type=?
+             ORDER BY id_a,id_b ASC
              LIMIT 100
           ''',
 #             ORDER BY black DESC
@@ -39,5 +40,6 @@ c.execute('''SELECT *
 
 boxes = c.fetchall()
 #print(darkest)
+#print(boxes[0])
 ims = [imread(io.BytesIO(b[-1])) for b in boxes]
 show_auto_grid(ims)
