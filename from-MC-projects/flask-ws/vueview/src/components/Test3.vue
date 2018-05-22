@@ -63,6 +63,7 @@ export default {
     },
     show (w) {
       console.log(w)
+      this.$socket.emit('test3_show', {file: 'test3/capture.sqlite', rowId: w[2]})
     },
     click () {
       console.log('CLICK')
