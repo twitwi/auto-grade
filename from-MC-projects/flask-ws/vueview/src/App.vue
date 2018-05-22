@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <Test2/>
+    <Test3/>
     <img src="./assets/logo.png">
     <HelloWorld/>
   </div>
@@ -8,12 +8,12 @@
 
 <script>
 import HelloWorld from './components/HelloWorld'
-import Test2 from './components/Test2'
+import Test3 from './components/Test3'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld, Test2
+    HelloWorld, Test3
   }
 }
 </script>
