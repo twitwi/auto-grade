@@ -6,6 +6,8 @@ from flask_socketio import SocketIO, join_room, emit
 
 import time
 
+
+
 # pip3 install flask flask-socketio eventlet
 # https://secdevops.ai/weekend-project-part-2-turning-flask-into-a-real-time-websocket-server-using-flask-socketio-ab6b45f1d896
 
@@ -59,6 +61,28 @@ def on_test2(data):
     emit('test2rep', info)
 
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5, stride=1)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5, stride=1)
+        self.conv2_drop = nn.Dropout2d()
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 10)
+
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+        x = x.view(-1, 320)
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
+
 
 @socketio.on('test3_load_all')
 def on_test3(data):
@@ -71,14 +95,15 @@ def on_test3(data):
     import torchvision
     from torchvision import transforms
     import pretrainedmnist
-    net = pretrainedmnist.mnist(pretrained=True)
+    net = torch.load('model.torch')
+    #net = pretrainedmnist.mnist(pretrained=True)
     transform = transforms.Compose([
         transforms.ToPILImage(),
-        #transforms.Resize((28,28)),
-        transforms.Resize((42,28)),
-        transforms.CenterCrop((28,28)),
+        transforms.Resize((100,100)),
+        #transforms.Resize((42,28)),
+        #transforms.CenterCrop((28,28)),
         #transforms.Grayscale(),
-        transforms.ToTensor()
+        transforms.ToTensor(),
         ])
     for k,v in info.items():
         ims = []
@@ -86,7 +111,7 @@ def on_test3(data):
         for i,r in pairs:
             im = imread(io.BytesIO(r[-1]))
             im = np.transpose(transform(im).numpy(), [1,2,0])
-            N = 79
+            N = 78
             if i==N: print(im.shape)
             R = im[:,:,0]
             G = im[:,:,1]
@@ -97,11 +122,31 @@ def on_test3(data):
             im[((B*2-G-R)>.05)] = np.max(im)
             im[((R*2-G-B)>.05)] = np.max(im)
             im = 1 - im
+            print(im.shape)
+            cx = np.sum(im * np.arange(im.shape[1]).reshape((1, -1))) / np.sum(im)
+            cy = np.sum(im * np.arange(im.shape[0]).reshape((-1, 1))) / np.sum(im)
+            cxx = np.sum(im * (np.arange(im.shape[1])**2).reshape((1, -1))) / np.sum(im)
+            cyy = np.sum(im * (np.arange(im.shape[0])**2).reshape((-1, 1))) / np.sum(im)
+            cxx = (cxx - cx**2)**0.5
+            cyy = (cyy - cy**2)**0.5
+            print(cx, cy, cxx, cyy)
             #im /= np.max(im)
             #im[im>0.5] *= 3
+            im = np.array((im[...,np.newaxis]*np.ones((1,1,3)))*255, dtype=np.uint8)
+            im = transforms.Compose([
+                    transforms.ToPILImage(),
+                    transforms.Pad((max(0, int(im.shape[1]/2-cx)), max(0, int(im.shape[0]/2-cy)),
+                                    max(0, int(cx-im.shape[1]/2)), max(0, int(cy-im.shape[0]/2)))),
+                    transforms.CenterCrop((int(4*cxx),int(4*cyy))),
+                    transforms.Resize((28,28)),
+                    #transforms.Grayscale(),
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.1307,), (0.3081,))
+                    ])(im)
+            im = im[1:2, ::, ::].numpy()
             ims.append(im)
         from matplotlib import pyplot as plt
-        plt.imshow(ims[N], cmap='gray')
+        plt.imshow(ims[N][0,:,:], cmap='gray')
         plt.show()
         with torch.no_grad():
             pred = net(torch.from_numpy(np.array(ims)))
@@ -111,6 +156,7 @@ def on_test3(data):
 
     info['_id'] = data['_id']
     emit('test3rep', info)
+
 
 
 if __name__ == '__main__':
