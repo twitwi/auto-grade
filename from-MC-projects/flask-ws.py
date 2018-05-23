@@ -83,6 +83,23 @@ class Net(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
+class ENet(nn.Module):
+    def __init__(self):
+        super(ENet, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.conv2_drop = nn.Dropout2d()
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 47)
+
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+        x = x.view(-1, 320)
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
 
 
 
@@ -159,7 +176,7 @@ def on_test3(data):
         info = preload_all_queries(make_connection(data['file']), more=' AND student='+str(data['only']), improcess=assuch)
     else:
         info = preload_all_queries(make_connection(data['file']), improcess=assuch)
-    net = torch.load('model.torch')
+    net = torch.load('model-emnist.torch')
     #net = pretrainedmnist.mnist(pretrained=True)
     for k,v in info.items():
         ims = []
@@ -169,14 +186,22 @@ def on_test3(data):
         with torch.no_grad():
             pred = net(torch.from_numpy(np.array(ims)))
         amax = np.argmax(pred.numpy(), axis=1)
+        print(amax, pred.numpy())
+        classes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"
         for i,r in pairs:
-            char = str(int(amax[i]))
+            char = classes[int(amax[i])]
             if r[10] == 0: char = '_'
             v[i] = v[i][:-1] + (asbase64(v[i][-1]), char)
 
     info['_id'] = data['_id']
     emit('test3rep', info)
 
+@socketio.on('test3_log')
+def on_test3log(data):
+    import codecs
+    with codecs.open("all-logs.jstream", "a", "utf-8") as f:
+        f.write(data)
+    print("saved")
 
 
 if __name__ == '__main__':
