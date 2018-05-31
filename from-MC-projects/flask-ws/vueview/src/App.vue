@@ -14,7 +14,7 @@
       <div class="menu">
         <router-link to="/">Home</router-link>
         <router-link to="/test2" class="pseudo button icon-picture">Raw</router-link>
-        <router-link to="/test3" class="pseudo button icon-picture">Annotate</router-link>
+        <router-link to="/annotate1" class="pseudo button icon-picture">Annotate</router-link>
         <!--a href="#" class="button icon-puzzle">Plugins</a-->
       </div>
     </nav>

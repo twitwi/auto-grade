@@ -7,7 +7,7 @@ import App from './App'
 import store from './store'
 // Components
 import HelloWorld from './components/HelloWorld'
-import Test3 from './components/Test3'
+import Annotate1 from './components/Annotate1'
 import Test2 from './components/Test2'
 // could https://vuejs.org/v2/guide/components-registration.html#Automatic-Global-Registration-of-Base-Components
 
@@ -20,7 +20,7 @@ let r = (path, component) => ({path, component})
 const router = new VueRouter({
   routes: [
     r('/', HelloWorld),
-    r('/test3', Test3),
+    r('/annotate1', Annotate1),
     r('/test2', Test2)
   ]
 })

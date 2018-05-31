@@ -27,7 +27,7 @@ import { mapState } from 'vuex'
 import S from '../suggestions'
 
 export default {
-  name: 'TEST3',
+  name: 'Annotate1',
   data () {
     return {
       dbPath: 'test3/capture.sqlite',
