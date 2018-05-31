@@ -1,9 +1,8 @@
 <template>
   <div class="test3" ref="root">
-    <h1>{{ connected }}</h1>
-    <h1>{{ error }}</h1>
-    <h1>{{ message }}</h1>
-    {{ currentIndex }}<input class="log" name="student" type="range" min="1" max="200" v-model="currentIndex" @change="click"/>
+    <h1>{{ connected }}.{{ error }}.{{ message }}</h1>
+    <input v-model="dbPath"/>
+    {{ currentIndex }}<input class="log" name="student" type="range" min="1" :max="maxIndex" v-model="currentIndex" @change="click"/>
     <button @click="save">LOG IT</button>
     <div class="user" v-for="(user,k) in response" :key="k">
       <span>[{{ k }} {{ user.student }}]</span>
@@ -27,24 +26,13 @@ import { mapState } from 'vuex'
 // mapGetters, mapMutations, mapActions
 import S from '../suggestions'
 
-function argmin (arr) {
-  let i = arr.length
-  let min = Infinity
-  let imin = -1
-  while (i--) {
-    if (arr[i] < min) {
-      imin = i
-      min = arr[i]
-    }
-  }
-  return imin
-}
-
 export default {
   name: 'TEST3',
   data () {
     return {
+      dbPath: 'test3/capture.sqlite',
       currentIndex: 1,
+      maxIndex: 200,
       response: [],
       suggestions: {
         nom: S.noms,
@@ -81,31 +69,7 @@ export default {
   },
   methods: {
     bestGuess (group) {
-      function clean (a) { return [].filter.call(a, c => c !== '_').join('') }
-      var pred = clean(group.rows.map(r => r[14]).join(''))
-      function dist (sug) {
-        let res = 0
-        let n = pred.length
-        if (pred.length !== sug.length) {
-          res += 3
-          let nmin = Math.min(n, sug.length)
-          res += 2 * (n - nmin)
-          n = nmin
-        }
-        if (n === 0) {
-          return res
-        }
-        while (--n >= 0) {
-          res += S.cost(sug[n], pred[n])
-        }
-        // console.log(sug, pred, res)
-        return res
-      }
-      let suggest = this.suggestions[group.name]
-      if (suggest === undefined) suggest = this.suggestions.DEFAULT
-      let dists = suggest.map(dist)
-      let imax = argmin(dists)
-      return suggest[imax]
+      return S.bestGuess(group, this.suggestions)
     },
     isChange (u, ind) {
       console.log(ind)
@@ -113,11 +77,11 @@ export default {
     },
     show (w) {
       console.log(w)
-      this.$socket.emit('test3_show', {file: 'test3/capture.sqlite', rowId: w[2]})
+      this.$socket.emit('test3_show', {file: this.dbPath, rowId: w[2]})
     },
     click () {
       console.log('CLICK')
-      this.$socket.emit('test3_load_all', {file: 'test3/capture.sqlite', _id: 'TESTID', only: this.currentIndex})
+      this.$socket.emit('test3_load_all', {file: this.dbPath, _id: 'TESTID', only: this.currentIndex})
       console.log('CLICKED')
     },
     save () {
