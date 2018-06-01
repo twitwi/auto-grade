@@ -7,9 +7,9 @@
     <div class="user" v-for="(user,k) in response" :key="k">
       <span>[{{ k }} {{ user.student }}]</span>
       <div v-for="(group, igroup) in user.groups" :key="igroup">
-        <span v-for="r in group.rows" :key="r[2]">
-          <img :src="'data:image/png;base64,' + r[13]" @click="show(r)"/>
-          {{ r[14] }}
+        <span v-for="r in group.rows" :key="r[2]" class="annotated-box">
+          <img :src="'data:image/png;base64,' + r[13]" @click="show(r)"/><br/>
+          <span>{{ r[14] }}</span>
         </span>
         <!--span>{{ group.name }}</span-->
         <input class="log" :name="'g:'+group.blob" type="text" :value="bestGuess(group)"/>
@@ -107,5 +107,14 @@ export default {
 }
 a {
   color: #42b983;
+}
+.annotated-box {
+  display: inline-block;
+}
+.annotated-box span {
+  border: 1px solid darkgrey;
+  background: lightgrey;
+  padding: 4px;
+  font-weight: bold;
 }
 </style>

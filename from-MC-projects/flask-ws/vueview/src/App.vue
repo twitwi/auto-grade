@@ -3,9 +3,9 @@
 
     <!-- picnicss navbar -->
     <nav class="demo">
-      <router-link to="/">
+      <!--router-link to="/">
         <img class="logo" src="./assets/logo.png" />
-      </router-link>
+      </router-link-->
 
       <!-- responsive-->
       <input id="bmenub" type="checkbox" class="show">
@@ -30,7 +30,7 @@ export default {
 </script>
 
 <style>
-@import "../node_modules/picnic/picnic.min.css";
+/* @import "../node_modules/picnic/picnic.min.css"; */
 
 #app {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;

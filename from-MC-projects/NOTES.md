@@ -32,3 +32,23 @@ python3 jstream-to-tsv.py  ../all-logs.jstream
 
 less ../all-logs.jstream.tsv
 ~~~
+
+
+# On GPU2
+
+~~~
+srun -p GPU --gres=gpu:titanxk:1 -I -N 1 -c 1 --pty -t 0-01:05 /bin/bash
+
+source /home_expes/tools/python/python3_gpu
+with_proxy
+pip3 install --target=/tmp/REMI-PIP  http://download.pytorch.org/whl/cu80/torch-0.4.0-cp36-cp36m-linux_x86_64.whl torchvision
+
+PYTHONPATH=/tmp/REMI-PIP python3 train-emnist2.py
+
+PYTHONPATH=/tmp/REMI-PIP python3 /tmp/REMI-PIP/ptpython/entry_points/run_ptpython.py
+
+# conv to cpu
+def the class
+ncpu = torch.load(....).cpu()
+torch.save(ncpu, ....)
+~~~
