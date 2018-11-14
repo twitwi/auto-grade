@@ -30,8 +30,8 @@ export default {
   name: 'Annotate1',
   data () {
     return {
-      dbPath: 'test3/capture.sqlite',
-      currentIndex: 1,
+      dbPath: 'test-ipy2/capture.sqlite',
+      currentIndex: 14,
       maxIndex: 200,
       response: [],
       suggestions: {
@@ -45,20 +45,47 @@ export default {
     this.$options.sockets['test3rep'] = (data) => {
       console.log('REP')
       let get = (d, name, q, min = 0, max = undefined) => ({name, blob: name + '--' + q + '--' + min + '--' + max, rows: d.filter(r => r[7] === q).slice(min, max)})
+      let getq = (d, name, qs, min = 0, max = undefined) => qs.map(q => ({name, blob: name + '--' + q + '--' + min + '--' + max, rows: d.filter(r => r[7] === q).slice(min, max)}))
+      let gets = (d, name, q, steps) => steps.map((s, i) => i).filter(i => i > 0).map(i => {
+        let min = steps[i - 1]
+        let max = steps[i]
+        //console.log(i, min, max, d.length, d.filter(r => r[7] === q).length)
+        return {
+          name,
+          blob: name + '--' + q + '--' + min + '--' + max,
+          rows: d.filter(r => r[7] === q).slice(min, max)
+        }
+      })
       delete data._id
       this.response = Object.keys(data).map((u) => {
         let d = data[u]
         return {
           student: u,
           groups: [
-            get(d, 'nom', 1, 0, 20),
-            get(d, 'prenom', 1, 24, 44),
-            get(d, 'q1', 7),
-            get(d, 'q2', 8),
-            get(d, 'q3', 9),
-            get(d, 'q4', 10),
-            get(d, 'q5', 11),
-            get(d, 'q6', 12)
+            /*
+            get(d, 'nom', 1, 0, 24),
+            get(d, 'prenom', 1, 24, 47),
+            get(d, 'promo', 1, 47, 50),
+            get(d, 'login', 1, 50, 58),
+            */
+            ...gets(d, 'infos', 1, [0, 24, 47, 50, 58]),
+            ...gets(d, 'q2', 2, [0, 3, 6, 9, 18, 21, 24, 27, 30, 33, 36, 39]),
+            ...getq(d, 'q3a8', [3, 4, 5, 6, 7, 8]),
+            ...gets(d, 'q8', 8, [0, 12, 32, 52]),
+            ...gets(d, 'q9', 9, [0, 4, 12, undefined]),
+            ...gets(d, 'q10', 10, [0, 18, undefined])
+            /*
+            get(d, 'q6', 6),
+            get(d, 'q7', 7),
+            get(d, 'q8a', 8, 0, 3),
+            get(d, 'q8b', 8, 3, 6),
+            get(d, 'q9a', 9, 0, 6),
+            get(d, 'q9b', 9, 6, 12),
+            get(d, 'q10', 10),
+            get(d, 'q11', 11),
+            get(d, 'q12', 12),
+            get(d, 'q13', 13)
+            */
           ]
         }
       })

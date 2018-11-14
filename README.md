@@ -46,7 +46,7 @@ Process: generating pdf and finding box positions
 - data access in layout.pm
     - e.g. table layout_box, column xmin,xmax,ymin,ymax
     - saved to layout.sqlite
-    - it checks for instance that marks are at the same place in all pages 
+    - it checks for instance that marks are at the same place in all pages
 
 Things about latex: how it generates the xy file
 - using `/usr/share/texmf/tex/latex/AMC/automultiplechoice.sty`
@@ -85,6 +85,7 @@ diff AMC-detect{-ori,}.cc
 
 `make AMC-detect && sudo cp AMC-detect /usr/lib/AMC/exec/AMC-detect`
 
+now consolidated in a custom Dockerfile
 
 
 #### Alternative, prototypes etc

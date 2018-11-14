@@ -122,25 +122,36 @@ transform = transforms.Compose([
 def bytes2im(byts, i=-1):
     im = imread(io.BytesIO(byts))
     im = np.transpose(transform(im).numpy(), [1,2,0])
-    N = 78
-    if i==N: print(im.shape)
-    R = im[:,:,0]
-    G = im[:,:,1]
-    B = im[:,:,2]
-    im = np.sum(im, axis=2) / 3 #, np.array(im[:,:,1:2])# - np.sum(im, axis=2, keepdims=True))
-    im = (im - np.min(im)) / (np.max(im) - np.min(im))
 
-    im[((B*2-G-R)>.05)] = np.max(im)
-    im[((R*2-G-B)>.05)] = np.max(im)
+    if False:
+        N = 78
+        if i==N: print(im.shape)
+        R = im[:,:,0]
+        G = im[:,:,1]
+        B = im[:,:,2]
+        im = np.sum(im, axis=2) / 3 #, np.array(im[:,:,1:2])# - np.sum(im, axis=2, keepdims=True))
+        if np.max(im) - np.min(im) == 0:
+            im = np.array([im])
+            print("-------------", np.shape(im))
+            return im
+        im = (im - np.min(im)) / (np.max(im) - np.min(im))
+
+        im[((B*2-G-R)>.05)] = np.max(im)
+        im[((R*2-G-B)>.05)] = np.max(im)
+    else:
+        im = np.sum(im, axis=2) / 3 #, np.array(im[:,:,1:2])# - np.sum(im, axis=2, keepdims=True))
+        #im = (im - np.min(im)) / (np.max(im) - np.min(im))
+
     im = 1 - im**4
-    print(im.shape)
-    cx = np.sum(im * np.arange(im.shape[1]).reshape((1, -1))) / np.sum(im)
-    cy = np.sum(im * np.arange(im.shape[0]).reshape((-1, 1))) / np.sum(im)
-    cxx = np.sum(im * (np.arange(im.shape[1])**2).reshape((1, -1))) / np.sum(im)
-    cyy = np.sum(im * (np.arange(im.shape[0])**2).reshape((-1, 1))) / np.sum(im)
+    s = np.sum(im)
+    if s == 0: s = 1
+    cx = np.sum(im * np.arange(im.shape[1]).reshape((1, -1))) / s
+    cy = np.sum(im * np.arange(im.shape[0]).reshape((-1, 1))) / s
+    cxx = np.sum(im * (np.arange(im.shape[1])**2).reshape((1, -1))) / s
+    cyy = np.sum(im * (np.arange(im.shape[0])**2).reshape((-1, 1))) / s
     cxx = (cxx - cx**2)**0.5
     cyy = (cyy - cy**2)**0.5
-    print(cx, cy, cxx, cyy)
+    print(cx, cy, cxx, cyy, s)
     #im /= np.max(im)
     #im[im>0.5] *= 3
     im = np.array((im[...,np.newaxis]*np.ones((1,1,3)))*255, dtype=np.uint8)
@@ -156,7 +167,9 @@ def bytes2im(byts, i=-1):
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])(im)
+
     im = im[1:2, ::, ::].numpy()
+    #print(np.shape(im))
     return im
 
 @socketio.on('test3_show')
@@ -176,7 +189,7 @@ def on_test3(data):
         info = preload_all_queries(make_connection(data['file']), more=' AND student='+str(data['only']), improcess=assuch)
     else:
         info = preload_all_queries(make_connection(data['file']), improcess=assuch)
-    net = torch.load('model-emnist.torch')
+    net = torch.load('model-emnist.torch').to(torch.device('cpu'))
     #net = pretrainedmnist.mnist(pretrained=True)
     for k,v in info.items():
         ims = []
