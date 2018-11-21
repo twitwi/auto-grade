@@ -33,7 +33,7 @@ python3 flask-ws.py
 
 # and
 
-cd vue-view
+cd vview
 with_node
 yarn install
 yarn run dev
