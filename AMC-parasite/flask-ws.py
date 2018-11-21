@@ -5,7 +5,8 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO, join_room, emit
 
 import time
-
+import os
+import shutil
 
 
 # pip3 install flask flask-socketio eventlet
@@ -21,7 +22,6 @@ socketio = SocketIO(app)
 def index():
     """Serve the index HTML"""
     return render_template('plain-index.html')
-
 
 @socketio.on('test1')
 def on_create(data):
@@ -216,6 +216,32 @@ def on_test3log(data):
     with codecs.open("all-logs.jstream", "a", "utf-8") as f:
         f.write(data)
     print("saved")
+
+
+@socketio.on('manual-load-images')
+def manual_load_images(data):
+    if 'only' in data:
+        info = preload_all_queries(make_connection(data['file']), more=' AND student='+str(data['only']), improcess=assuch)
+    else:
+        info = preload_all_queries(make_connection(data['file']), improcess=assuch)
+    sub = 'pyannotate'
+    directory = './vview/public/'+sub
+    if os.path.exists(directory):
+        shutil.rmtree(directory)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    for k,v in info.items():
+        pairs = list(enumerate(v))
+        for i,r in pairs:
+            n = "/im-" + str(i) + ".png"
+            #print(info[k][:-2])
+            #info[k].append(sub+n)
+            #print(i, n)
+            with open(directory+n, "wb") as out_file:
+                out_file.write(r[-1])
+                v[i] = r[:-1] + (sub+n,)
+    info['_id'] = data['_id']
+    emit('manual-loaded-images', info)
 
 
 if __name__ == '__main__':
