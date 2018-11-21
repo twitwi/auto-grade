@@ -219,7 +219,7 @@ def on_test3log(data):
 
 
 @socketio.on('manual-load-images')
-def manual_load_images(data):
+def on_manual_load_images(data):
     if 'only' in data:
         info = preload_all_queries(make_connection(data['file']), more=' AND student='+str(data['only']), improcess=assuch)
     else:
@@ -243,6 +243,12 @@ def manual_load_images(data):
     info['_id'] = data['_id']
     emit('manual-loaded-images', info)
 
+@socketio.on('manual-log')
+def on_manual_log(data):
+    import codecs
+    with codecs.open("all-logs-manual.jstream", "a", "utf-8") as f:
+        f.write(data)
+    print("saved")
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)

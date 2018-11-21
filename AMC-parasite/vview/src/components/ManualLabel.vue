@@ -8,9 +8,15 @@
     <button @click="click">GO</button>
 
     <div class="scroller" :style="{ 'margin-left': (400-75*currentImage)+'px'}">
-      <img v-for="(i,ii) in response[currentUser]" :src="i[i.length-1]+'?'+currentUser" :key="i[i.length-1]" :class="{'current': currentImage==ii}"></img>
+      <div v-for="(i,ii) in response[currentUser]" :key="i[i.length-1]">
+        <img :src="i[i.length-1]+'?'+currentUser" :class="{'current': currentImage==ii}" />
+        <span v-if="annotations[ii]" class="annotation">{{annotations[ii]}}</span>
+      </div>
     </div>
-    <button @keydown="alert($event)"/>
+    <button @keydown="keydown($event)">FOCUS</button>
+    <button @click="currentImage = 0">««««</button>
+    <br/>
+    <pre v-if="response[currentUser]">{{JSON.stringify(response[currentUser][currentImage])}}</pre>
     <!--
     <div class="user" v-for="(user,k) in response" :key="'TUTU' + k + '---' + user.length">
       <span>[{{ k }}]</span>
@@ -36,13 +42,15 @@ export default {
       currentUser: 1,
       response: [],
       currentImage: 0,
+      annotations: {}
     }
   },
   sockets: {
-    'manual-loaded-images': function(data) {
-      //console.log(JSON.parse(JSON.stringify(data)));
-      this.response = data;
-    },
+    'manual-loaded-images': function (data) {
+      // console.log(JSON.parse(JSON.stringify(data)));
+      this.response = data
+      this.annotations = {}
+    }
   },
   created () {
     /*
@@ -56,13 +64,48 @@ export default {
     ...mapState(['connected', 'error', 'message'])
   },
   methods: {
-    clearNext () { this.next = [] },
+    keydown (ev) {
+      var k = ev.key
+      var prevDef = true
+      if (k === 'Backspace') {
+        this.currentImage--
+      } else
+      if (`'"!,.?-/*+=:[]()0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz`.indexOf(k) !== -1) {
+        this.annotateCurrent(k)
+      } else
+      if (k === 'Enter') {
+        this.save()
+      } else
+      if (k === 'Tab') {
+        this.skipEmptys()
+      } else {
+        prevDef = false
+        console.log(ev)
+      }
+      if (prevDef) {
+        ev.preventDefault()
+      }
+    },
+    annotateCurrent (k) {
+      this.annotations[this.currentImage] = k
+      this.currentImage++
+      this.skipEmptys()
+    },
+    skipEmptys () {
+      while (this.response[this.currentUser][this.currentImage][10] === 0 && this.currentImage < this.response[this.currentUser].length) {
+        this.currentImage++
+      }
+    },
     isChange (u, ind) {
       console.log(ind)
       return ind === 0 || u[ind - 1][7] !== u[ind][7]
     },
     show (w) {
       console.log(w)
+    },
+    save () {
+      let toLog = [this.currentUser, this.annotations]
+      this.$socket.emit('manual-log', JSON.stringify(toLog) + '\n') // send a string for easier printing on the other side
     },
     click () {
       console.log('CLICK')
@@ -77,6 +120,7 @@ export default {
 <style scoped>
 .scroller { transition: margin 200ms; overflow: hidden; display: flex; }
 .scroller { }
-.scroller img { border: 1px dotted green; min-width: 75px; max-width: 75px;}
-.scroller img.current { border: 1px solid black; }
+.scroller img { box-sizing: border-box; border: 2px dotted green; min-width: 75px; max-width: 75px;}
+.scroller img.current { border: 2px solid black; }
+.annotation { border-bottom: 1px solid black; }
 </style>

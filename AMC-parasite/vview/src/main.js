@@ -4,7 +4,7 @@ import router from './router'
 import VueSocketio from 'vue-socket.io'
 import store from './store'
 
-Vue.config.keyCodes['letters'] = [38, 87];
+// Vue.config.keyCodes['letters'] = [38, 87]
 
 Vue.config.productionTip = false
 Vue.use(new VueSocketio({
@@ -13,7 +13,7 @@ Vue.use(new VueSocketio({
     store,
     actionPrefix: 'SOCKET_',
     mutationPrefix: 'SOCKET_'
-  },
+  }
 }))
 
 new Vue({
