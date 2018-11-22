@@ -5,6 +5,8 @@
     <h1>{{ message }}</h1>
     <input v-model="projectDir"/><br/>
     {{ currentUser }}<input type="range" min="1" max="200" v-model="currentUser" @change="click"/>
+    <button @click="currentUser -- ; click()">«</button>
+    <button @click="currentUser ++ ; click()">»</button>
     <button @click="click">GO</button>
 
     <div class="scroller" :style="{ 'margin-left': (400-75*currentImage)+'px'}">
@@ -14,6 +16,8 @@
       </div>
     </div>
     <button @keydown="keydown($event)">FOCUS</button>
+    <button @click="currentImage --">«</button>
+    <button @click="currentImage ++">»</button>
     <button @click="currentImage = 0">««««</button>
     <br/>
     <pre v-if="response[currentUser]">{{JSON.stringify(response[currentUser][currentImage])}}</pre>
