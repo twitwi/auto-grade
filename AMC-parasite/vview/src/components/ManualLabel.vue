@@ -6,21 +6,25 @@
     <input v-model="projectDir"/><br/>
     {{ currentUser }}<input type="range" min="1" max="200" v-model="currentUser" @change="click"/>
     <button @click="currentUser -- ; click()">«</button>
+    <input v-model.number="currentUser"/>
     <button @click="currentUser ++ ; click()">»</button>
     <button @click="click">GO</button>
 
-    <div class="scroller" :style="{ 'margin-left': (400-75*currentImage)+'px'}">
-      <div v-for="(i,ii) in response[currentUser]" :key="i[i.length-1]">
-        <img :src="i[i.length-1]+'?'+currentUser" :class="{'current': currentImage==ii}" />
+    <div class="scroller" :style="{ 'margin-left': (400-75*currentImage)+'px'}" @click.right.prevent="focus('cr/page-'+currentUser+'-'+response[currentUser][currentImage][4]+'.jpg')">
+      <div v-for="(i,ii) in response[currentUser]" :key="i[i.length-1]" class="element">
+        <img v-if="Math.abs(currentImage+5-ii) < 11" :src="i[i.length-1]+'?'+currentUser" :class="{'current': currentImage==ii}" />
         <span v-if="annotations[ii]" class="annotation">{{annotations[ii]}}</span>
       </div>
     </div>
     <button @keydown="keydown($event)">FOCUS</button>
-    <button @click="currentImage --">«</button>
+    <button @click="currentImage --" title="also backspace">«</button>
+    <input v-model.number="currentImage"/>
     <button @click="currentImage ++">»</button>
     <button @click="currentImage = 0">««««</button>
     <br/>
     <pre v-if="response[currentUser]">{{JSON.stringify(response[currentUser][currentImage])}}</pre>
+    <br/>
+    <img :src="currentFocusImage" class="focus" @click.left="currentFocusImage = ''"/>
     <!--
     <div class="user" v-for="(user,k) in response" :key="'TUTU' + k + '---' + user.length">
       <span>[{{ k }}]</span>
@@ -35,6 +39,7 @@
 </template>
 
 <script>
+import config from '../customconfig'
 import { mapState } from 'vuex'
 // mapGetters, mapMutations, mapActions
 
@@ -46,6 +51,7 @@ export default {
       currentUser: 1,
       response: [],
       currentImage: 0,
+      currentFocusImage: '',
       annotations: {}
     }
   },
@@ -90,6 +96,9 @@ export default {
         ev.preventDefault()
       }
     },
+    focus (imPath) {
+      this.currentFocusImage = config.pyConnection + '/' + this.projectDir + '/' + imPath
+    },
     annotateCurrent (k) {
       this.annotations[this.currentImage] = k
       this.currentImage++
@@ -124,7 +133,9 @@ export default {
 <style scoped>
 .scroller { transition: margin 200ms; overflow: hidden; display: flex; }
 .scroller { }
+.scroller .element { min-width: 75px; }
 .scroller img { box-sizing: border-box; border: 2px dotted green; min-width: 75px; max-width: 75px;}
 .scroller img.current { border: 2px solid black; }
-.annotation { border-bottom: 1px solid black; }
+.scroller .annotation { border-bottom: 1px solid black; }
+.focus { width: 100%; }
 </style>

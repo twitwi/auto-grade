@@ -1,7 +1,7 @@
 
 
 
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 from flask_socketio import SocketIO, join_room, emit
 
 import time
@@ -17,6 +17,10 @@ import shutil
 #app = Flask(__name__, template_folder='flask-ws')
 app = Flask(__name__)
 socketio = SocketIO(app)
+
+@app.route('/,,test/<path:path>')
+def send_MC(path):
+    return send_from_directory(',,test', path)
 
 @app.route('/')
 def index():
@@ -220,10 +224,12 @@ def on_test3log(data):
 
 @socketio.on('manual-load-images')
 def on_manual_load_images(data):
+    print('SQL QUERY')
     if 'only' in data:
         info = preload_all_queries(make_connection(data['file']), more=' AND student='+str(data['only']), improcess=assuch)
     else:
         info = preload_all_queries(make_connection(data['file']), improcess=assuch)
+    print('...DONE')
     sub = 'pyannotate'
     directory = './vview/public/'+sub
     if os.path.exists(directory):
@@ -234,6 +240,7 @@ def on_manual_load_images(data):
         pairs = list(enumerate(v))
         for i,r in pairs:
             n = "/im-" + str(i) + ".png"
+            print('IMAGE', n)
             #print(info[k][:-2])
             #info[k].append(sub+n)
             #print(i, n)

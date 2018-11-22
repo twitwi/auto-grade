@@ -4,11 +4,13 @@ import router from './router'
 import VueSocketio from 'vue-socket.io'
 import store from './store'
 
+import config from './customconfig'
+
 // Vue.config.keyCodes['letters'] = [38, 87]
 
 Vue.config.productionTip = false
 Vue.use(new VueSocketio({
-  connection: `//${window.document.domain}:5000`,
+  connection: config.pyConnection,
   vuex: {
     store,
     actionPrefix: 'SOCKET_',
