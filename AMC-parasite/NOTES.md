@@ -37,15 +37,16 @@ cd vview
 with_node
 yarn install
 yarn run dev
+# or vue ui
 ~~~
 
-The "LOG IT" button will append to `all-logs.jstream`, which can be converted to TSV using:
+                        The "LOG IT" button will append to `all-logs.jstream`, which can be converted to TSV using:
 
-~~~
-python3 pytools/jstream-to-tsv.py  all-logs.jstream
+                        ~~~
+                        python3 pytools/jstream-to-tsv.py  all-logs.jstream
 
-less all-logs.jstream.tsv
-~~~
+                        less all-logs.jstream.tsv
+                        ~~~
 
 
 ### Creating the model on a GPU machine
@@ -57,12 +58,9 @@ srun -p GPU --gres=gpu:titanxk:1 -I -N 1 -c 1 --pty -t 0-01:05 /bin/bash
 
 source /home_expes/tools/python/python3_gpu
 with_proxy
-#NOT SURE IT IS NECESSARY AS THE CLUSTER HAS THE LAST VERSION pip3 install --target=/tmp/REMI-PIP  http://download.pytorch.org/whl/cu80/torch-0.4.0-cp36-cp36m-linux_x86_64.whl torchvision
 
-#PYTHONPATH=/tmp/REMI-PIP
-python3 train-emnist2.py
-
-#PYTHONPATH=/tmp/REMI-PIP python3 /tmp/REMI-PIP/ptpython/entry_points/run_ptpython.py
+cd torchlearn
+python3 train-emnist.py
 
 # conv to cpu
 def the class
