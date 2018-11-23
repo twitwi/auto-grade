@@ -3,10 +3,8 @@ import Router from 'vue-router'
 // import Home from './views/Home.vue'
 
 // Components
-import HelloWorld from './components/HelloWorld'
-import Annotate1 from './components/Annotate1'
-import Test2 from './components/Test2'
 import ManualLabel from './components/ManualLabel'
+import MinisetBuilder from './components/MinisetBuilder'
 
 Vue.use(Router)
 
@@ -14,17 +12,8 @@ let r = (path, component) => ({ path, component })
 
 export default new Router({
   routes: [
-    r('/', HelloWorld),
     r('/manual-label', ManualLabel),
-    r('/annotate1', Annotate1),
-    r('/test2', Test2),
-    /*
-    {
-      path: '/',
-      name: 'home',
-      component: Home
-    },
-    */
+    r('/miniset-builder', MinisetBuilder),
     {
       path: '/about',
       name: 'about',

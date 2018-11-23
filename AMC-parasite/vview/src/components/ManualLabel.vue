@@ -25,16 +25,6 @@
     <pre v-if="response[currentUser]">{{JSON.stringify(response[currentUser][currentImage])}}</pre>
     <br/>
     <img :src="currentFocusImage" class="focus" @click.left="currentFocusImage = ''"/>
-    <!--
-    <div class="user" v-for="(user,k) in response" :key="'TUTU' + k + '---' + user.length">
-      <span>[{{ k }}]</span>
-      <span v-for="(r,i) in user" :key="r[2]">
-        <span v-if="i===0 || user[i-1][7]!==user[i][7]">{{ r[7] }}</span>
-        <img :src="'data:image/png;base64,' + r[13]" @click="show(r)"/>
-      </span>
-      <br/>
-    </div>
-  -->
   </div>
 </template>
 
@@ -47,7 +37,7 @@ export default {
   name: 'ManualLabel',
   data () {
     return {
-      projectDir: ',,test/2018-infospichi-3-exam-2',
+      projectDir: config.defaultProjectDir,
       currentUser: 1,
       response: [],
       currentImage: 0,
@@ -61,14 +51,6 @@ export default {
       this.response = data
       this.annotations = {}
     }
-  },
-  created () {
-    /*
-    this.$options.sockets.test2rep = (data) => {
-      console.log('REP')
-      this.response = data
-    }
-    */
   },
   computed: {
     ...mapState(['connected', 'error', 'message'])
@@ -97,7 +79,7 @@ export default {
       }
     },
     focus (imPath) {
-      this.currentFocusImage = config.pyConnection + '/' + this.projectDir + '/' + imPath
+      this.currentFocusImage = config.pyConnection + '/MC/' + this.projectDir + '/' + imPath
     },
     annotateCurrent (k) {
       this.annotations[this.currentImage] = k
@@ -122,7 +104,7 @@ export default {
     },
     click () {
       console.log('CLICK')
-      this.$socket.emit('manual-load-images', { file: this.projectDir + '/data/capture.sqlite', _id: 'TESTID', only: this.currentUser })
+      this.$socket.emit('manual-load-images', { pro: this.projectDir, _id: 'TESTID', only: this.currentUser })
       console.log('CLICKED')
     }
   }

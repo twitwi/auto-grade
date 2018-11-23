@@ -18,9 +18,12 @@ import shutil
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-@app.route('/,,test/<path:path>')
+local_MC = './,,test/'
+
+# Host the mc projects
+@app.route('/MC/<path:path>')
 def send_MC(path):
-    return send_from_directory(',,test', path)
+    return send_from_directory(local_MC, path)
 
 @app.route('/')
 def index():
@@ -226,9 +229,9 @@ def on_test3log(data):
 def on_manual_load_images(data):
     print('SQL QUERY')
     if 'only' in data:
-        info = preload_all_queries(make_connection(data['file']), more=' AND student='+str(data['only']), improcess=assuch)
+        info = preload_all_queries(make_connection(local_MC+data['pro']+'/data/capture.sqlite'), more=' AND student='+str(data['only']), improcess=assuch)
     else:
-        info = preload_all_queries(make_connection(data['file']), improcess=assuch)
+        info = preload_all_queries(make_connection(local_MC+data['pro']+'/data/capture.sqlite'), improcess=assuch)
     print('...DONE')
     sub = 'pyannotate'
     directory = './vview/public/'+sub
@@ -250,12 +253,46 @@ def on_manual_load_images(data):
     info['_id'] = data['_id']
     emit('manual-loaded-images', info)
 
-@socketio.on('manual-log')
+@socketio.on('manual-log') # TODO should probably scope the logs (into the project dir)
 def on_manual_log(data):
     import codecs
     with codecs.open("all-logs-manual.jstream", "a", "utf-8") as f:
         f.write(data)
     print("saved")
+
+@socketio.on('miniset-get-logs')
+def on_miniset_getlogs(data):
+    import codecs
+    with codecs.open("all-logs-manual.jstream", "r", "utf-8") as f:
+        emit('miniset-got-logs', list(map(lambda l: l[:-1], f.readlines())))
+
+@socketio.on('miniset-export')
+def on_miniset_export(data):
+    name = data['name']
+    print("Exporting miniset", name)
+    sub = 'miniset/'+name
+    directory = './vview/public/'+sub
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    else:
+        print("WILL NOT OVERWRITE", directory)
+        return
+    for d in data['annotations']:
+        student = d[0]
+        ann = d[1]
+        info = preload_all_queries(make_connection(local_MC+data['pro']+'/data/capture.sqlite'), more=' AND student='+student, improcess=assuch)
+        info = info[int(student)]
+        for i, r in list(enumerate(info)):
+            if not str(i) in ann:
+                print("SKIP", i)
+                continue
+            n = '/im-%05d.png' % (i,)
+            with open(directory+n, "wb") as out_file:
+                out_file.write(r[-1])
+            n = '/im-%05d.txt' % (i,)
+            with open(directory+n, "w") as out_file:
+                out_file.write(ann[str(i)])
+    print("WROTE", directory)
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)

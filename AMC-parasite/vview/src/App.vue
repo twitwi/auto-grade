@@ -1,7 +1,9 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/manual-label" class="pseudo button icon-picture">Label</router-link>
+      <router-link to="/manual-label" class="pseudo button icon-picture">Annotate</router-link>
+      <router-link to="/miniset-builder" class="pseudo button icon-picture">Miniset</router-link>
+      <span>///</span>
       <router-link to="/">Home</router-link>
       <router-link to="/test2" class="pseudo button icon-picture">Raw</router-link>
       <router-link to="/annotate1" class="pseudo button icon-picture">Annotate</router-link>
