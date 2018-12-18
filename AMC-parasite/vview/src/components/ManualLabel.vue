@@ -68,6 +68,12 @@ export default {
       if (k === 'Enter') {
         this.save()
       } else
+      if (k === 'ArrowRight') {
+        this.currentImage++
+      } else
+      if (k === 'ArrowLeft') {
+        this.currentImage--
+      } else
       if (k === 'Tab') {
         this.skipEmptys()
       } else {
