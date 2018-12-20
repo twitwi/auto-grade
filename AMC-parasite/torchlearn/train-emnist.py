@@ -7,6 +7,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 import glob
 import kymatio
+import numpy as np
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch EMNIST')
@@ -35,13 +36,18 @@ device = torch.device("cuda" if use_cuda else "cpu")
 
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+_i = 0
 def go(x):
-    print(x.shape)
+    global _i
+    if _i % 25 == 0:
+        print(_i, x.shape)
+    _i+=1
     return x
 
-#import kymatio
-#scattering_transform = kymatio.Scattering2D(J=2, shape=(32,32))
-#scatter = transforms.Lambda(lambda t: go(scattering_transform(t)[0,:,:,:]))
+import kymatio
+scattering_transform = kymatio.Scattering2D(J=2, L=8, shape=(32,32))
+scatter = transforms.Lambda(lambda t: go(scattering_transform(t)[0,:,:,:]))
+scatter_contiguous = transforms.Lambda(lambda t: go(scattering_transform(t.contiguous())[0,:,:,:]))
 
 emnist_transforms = transforms.Compose([
     transforms.Pad(2),
@@ -50,15 +56,15 @@ emnist_transforms = transforms.Compose([
     transforms.ToTensor(),
     transforms.Lambda(lambda t: t.transpose(1, 2)),
     transforms.Normalize((1,), (-1,)), # Invert
-    #scatter,
-    transforms.Normalize((0.1307,), (0.3081,))
+    scatter_contiguous,
+    #transforms.Normalize((0.1307,), (0.3081,))
 ])
 custom_transforms = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.Resize((32,32)),
     transforms.ToTensor(),
-    #scatter,
-    transforms.Normalize((0.1307,), (0.3081,))
+    scatter,
+    #transforms.Normalize((0.1307,), (0.3081,))
 ])
 
 our_classes = "=:;.-_()[]!?*/"
@@ -81,9 +87,33 @@ def map_target_folder(d):
     return __sub__
 
 IF = lambda d: datasets.ImageFolder(d, transform=custom_transforms, target_transform=map_target_folder(d))
+def cache(ds, ondisk):
+    l = len(ds)
+    import pickle
+    import os
+    if os.path.isfile(ondisk):
+        with open(ondisk, "rb") as f:
+            X,Y = pickle.load(f)
+    else:
+        X = []
+        Y = []
+        for o in ds:
+            X.append(o[0].numpy())
+            Y.append(o[1].numpy())
 
-miniset1_dataset = IF('miniset1')
-miniset2_dataset = IF('miniset2')
+        X = np.array(X)
+        Y = np.array(Y)
+        with open(ondisk, 'wb') as out:
+            pickle.dump((X,Y), out)
+        
+    return torch.utils.data.TensorDataset(
+        torch.from_numpy(np.array(X)),
+        torch.from_numpy(np.array(Y))
+    )
+
+miniset1_dataset = cache(IF('miniset1'), ',,ms1')
+miniset2_dataset = cache(IF('miniset2'), ',,ms2')
+train_emnist_dataset = cache(datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms), ',,emtrain')
 
 def show_data():
     from matplotlib import pyplot as plt
@@ -93,7 +123,7 @@ def show_data():
         plt.imshow(miniset1_dataset[random.randrange(len(miniset1_dataset))][0][0])
         plt.savefig('input{:02d}.png'.format(o))
         o+=1
-    em = datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms)
+    em = train_emnist_dataset
     for i in range(20):
         plt.imshow(em[random.randrange(len(em))][0][0])
         plt.savefig('input{:02d}.png'.format(o))
@@ -105,7 +135,8 @@ def show_data():
 
 train_loader = torch.utils.data.DataLoader(
     torch.utils.data.ConcatDataset([
-        miniset2_dataset
+        #miniset2_dataset,
+        train_emnist_dataset,
         #miniset1_dataset, miniset1_dataset, miniset1_dataset,
         #miniset1_dataset, miniset1_dataset, miniset1_dataset,
         #datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms)
@@ -113,8 +144,8 @@ train_loader = torch.utils.data.DataLoader(
     batch_size=args.batch_size, shuffle=True, **kwargs)
 
 
-miniset1_loader = torch.utils.data.DataLoader(IF('miniset1'), batch_size=args.batch_size, shuffle=True, **kwargs)
-miniset2_loader = torch.utils.data.DataLoader(IF('miniset2'), batch_size=args.batch_size, shuffle=True, **kwargs)
+miniset1_loader = torch.utils.data.DataLoader(miniset1_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+miniset2_loader = torch.utils.data.DataLoader(miniset2_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
 test_loader = torch.utils.data.DataLoader(
     torch.utils.data.ConcatDataset([
@@ -152,38 +183,16 @@ class Flatten(nn.Module):
         return x.view(x.size()[0], -1)
                 
 model = nn.Sequential()
-# model.add_module('f_conv1', nn.Conv2d(1, 64, kernel_size=5))
-# model.add_module('f_bn1',   nn.BatchNorm2d(64))
-# model.add_module('f_pool1', nn.MaxPool2d(2))
-# model.add_module('f_relu1', nn.ReLU())
-# model.add_module('f_conv2', nn.Conv2d(64, 50, kernel_size=5))
-# model.add_module('f_bn2',   nn.BatchNorm2d(50))
-# model.add_module('f_drop1', nn.Dropout2d())
-# model.add_module('f_pool2', nn.MaxPool2d(2))
-# model.add_module('f_relu2', nn.ReLU())
-# model.add_module('f_flat',  Flatten())
-# model.add_module('f_fc1',   nn.Linear(5*5*50, 100))
-# model.add_module('f_relu2', nn.ReLU())
-# model.add_module('f_fc2',   nn.Linear(100, len(classes)))
-# model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
 
-model.add_module('f_conv1', nn.Conv2d(1, 16, kernel_size=5))
-model.add_module('f_bn1',   nn.BatchNorm2d(16))
-model.add_module('f_pool1', nn.MaxPool2d(7))
-model.add_module('f_relu1', nn.ReLU())
+#model.add_module('f_conv1', nn.Conv2d(81, 1, kernel_size=1))
 model.add_module('f_flat',  Flatten())
-model.add_module('f_fc1',   nn.Linear(4*4*16, 100))
-model.add_module('f_relu2', nn.ReLU())
-model.add_module('f_bn2',   nn.BatchNorm1d(100))
-model.add_module('f_fc2',   nn.Linear(100, len(classes)))
+model.add_module('f_fc1',   nn.Linear(81*8*8, 1000))
+model.add_module('f_relu1', nn.PReLU())
+model.add_module('f_fc2',   nn.Linear(1000, 1000))
+model.add_module('f_relu2', nn.PReLU())
+model.add_module('f_fc2b',   nn.Linear(1000, len(classes) ))
+model.add_module('f_relu2b', nn.PReLU())
 model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
-
-# model.add_module('f_conv1', nn.Conv2d(81, 4, kernel_size=3))
-# model.add_module('f_flat',  Flatten())
-# model.add_module('f_fc1',   nn.Linear(4*6*6, 1000))
-# model.add_module('f_relu1', nn.ReLU())
-# model.add_module('f_fc2',   nn.Linear(1000, len(classes)))
-# model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
 
 model = model.to(device)
 
@@ -230,7 +239,7 @@ for epoch in range(1, args.epochs + 1):
     scheduler.step(train_loss)
     test_loss = test(test_loader)
     scheduler.step(test_loss)
-    test_loss = test(miniset1_loader)
-    test_loss = test(miniset2_loader)
-    torch.save(model, "model-emnist.torch")
+    #test_loss = test(miniset1_loader)
+    #test_loss = test(miniset2_loader)
+    #torch.save(model, "model-emnist.torch")
     print('saved')
