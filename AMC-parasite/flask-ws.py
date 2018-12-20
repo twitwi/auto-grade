@@ -24,6 +24,10 @@ local_MC = './,,test/'
 @app.route('/MC/<path:path>')
 def send_MC(path):
     return send_from_directory(local_MC, path)
+# Host the generate files
+@app.route('/gen/<path:path>')
+def send_publiccustom(path):
+    return send_from_directory('./generated/', path)
 
 @app.route('/')
 def index():
@@ -208,7 +212,8 @@ def on_test3(data):
             pred = net(torch.from_numpy(np.array(ims)))
         amax = np.argmax(pred.numpy(), axis=1)
         print(amax, pred.numpy())
-        classes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"
+        our_classes = "=:.-_()[]!?*/"
+        classes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"+our_classes
         for i,r in pairs:
             char = classes[int(amax[i])]
             if r[10] == 0: char = '_'
@@ -234,7 +239,7 @@ def on_manual_load_images(data):
         info = preload_all_queries(make_connection(local_MC+data['pro']+'/data/capture.sqlite'), improcess=assuch)
     print('...DONE')
     sub = 'pyannotate'
-    directory = './vview/public/'+sub
+    directory = './generated/'+sub
     if os.path.exists(directory):
         shutil.rmtree(directory)
     if not os.path.exists(directory):
@@ -249,7 +254,7 @@ def on_manual_load_images(data):
             #print(i, n)
             with open(directory+n, "wb") as out_file:
                 out_file.write(r[-1])
-                v[i] = r[:-1] + (sub+n,)
+                v[i] = r[:-1] + ('gen/'+sub+n,)
     info['_id'] = data['_id']
     emit('manual-loaded-images', info)
 
@@ -271,7 +276,7 @@ def on_miniset_export(data):
     name = data['name']
     print("Exporting miniset", name)
     sub = 'miniset/'+name
-    directory = './vview/public/'+sub
+    directory = './vview/public-custom/'+sub
     if not os.path.exists(directory):
         os.makedirs(directory)
     else:
@@ -280,18 +285,21 @@ def on_miniset_export(data):
     for d in data['annotations']:
         student = d[0]
         ann = d[1]
-        info = preload_all_queries(make_connection(local_MC+data['pro']+'/data/capture.sqlite'), more=' AND student='+student, improcess=assuch)
+        info = preload_all_queries(make_connection(local_MC+data['pro']+'/data/capture.sqlite'), more=' AND student='+str(student), improcess=assuch)
         info = info[int(student)]
         for i, r in list(enumerate(info)):
             if not str(i) in ann:
                 print("SKIP", i)
                 continue
+            di = directory + '/class-' + ann[str(i)]
+            if not os.path.exists(di):
+                os.makedirs(di)
             n = '/im-%05d.png' % (i,)
-            with open(directory+n, "wb") as out_file:
+            with open(di+n, "wb") as out_file:
                 out_file.write(r[-1])
-            n = '/im-%05d.txt' % (i,)
-            with open(directory+n, "w") as out_file:
-                out_file.write(ann[str(i)])
+            #n = '/im-%05d.txt' % (i,)
+            #with open(directory+n, "w") as out_file:
+            #    out_file.write(ann[str(i)])
     print("WROTE", directory)
 
 if __name__ == '__main__':

@@ -12,7 +12,7 @@
 
     <div class="scroller" :style="{ 'margin-left': (400-75*currentImage)+'px'}" @click.right.prevent="focus('cr/page-'+currentUser+'-'+response[currentUser][currentImage][4]+'.jpg')">
       <div v-for="(i,ii) in response[currentUser]" :key="i[i.length-1]" class="element">
-        <img v-if="Math.abs(currentImage+5-ii) < 11" :src="i[i.length-1]+'?'+currentUser" :class="{'current': currentImage==ii}" />
+        <img v-if="Math.abs(currentImage+5-ii) < 11" :src="svPath + i[i.length-1]+'?'+currentUser" :class="{'current': currentImage==ii}" />
         <span v-if="annotations[ii]" class="annotation">{{annotations[ii]}}</span>
       </div>
     </div>
@@ -38,6 +38,7 @@ export default {
   data () {
     return {
       projectDir: config.defaultProjectDir,
+      svPath: config.pyConnection + '/',
       currentUser: 1,
       response: [],
       currentImage: 0,
