@@ -11,8 +11,8 @@ import numpy as np
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch EMNIST')
-parser.add_argument('--batch-size', type=int, default=8, metavar='N',
-                    help='input batch size for training (default: 8)')
+parser.add_argument('--batch-size', type=int, default=32, metavar='N',
+                    help='input batch size for training (default: 32)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
 parser.add_argument('--epochs', type=int, default=10, metavar='N',
@@ -193,25 +193,6 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size()[0], -1)
                 
-model = nn.Sequential()
-if has_scatter:
-    model.add_module('f_conv1', nn.Conv2d(81, 100, kernel_size=3))
-    model.add_module('f_relu1', nn.ReLU())
-    model.add_module('f_bn1',   nn.BatchNorm2d(100))
-    model.add_module('f_flat',  Flatten())
-    model.add_module('f_fc1',   nn.Linear(100*6*6, 10))
-    model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
-else:
-    model.add_module('f_conv1', nn.Conv2d(1, 16, kernel_size=2))
-    model.add_module('f_bn1',   nn.BatchNorm2d(16))
-    model.add_module('f_relu1', nn.ReLU())
-    model.add_module('f_conv2', nn.Conv2d(16, 16, kernel_size=2))
-    model.add_module('f_bn2',   nn.BatchNorm2d(16))
-    model.add_module('f_relu2', nn.ReLU())
-    model.add_module('f_flat',  Flatten())
-    model.add_module('f_fc1',   nn.Linear(16*30*30, 10))
-    model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
-
 def obj_dic(d):
     top = type('new', (object,), d)
     seqs = tuple, list, set, frozenset
@@ -225,18 +206,20 @@ def Ganin():
     features.add_module('f_bn1',   nn.BatchNorm2d(64))
     features.add_module('f_pool1', nn.MaxPool2d(2))  # 14×14
     features.add_module('f_relu1', nn.ReLU())
-    features.add_module('f_conv2', nn.Conv2d(64, 50, kernel_size=5))
-    features.add_module('f_bn2',   nn.BatchNorm2d(50))
+    features.add_module('f_conv2', nn.Conv2d(64, 100, kernel_size=5))
+    features.add_module('f_bn2',   nn.BatchNorm2d(100))
     features.add_module('f_drop1', nn.Dropout2d())
     features.add_module('f_pool2', nn.MaxPool2d(2))  # 5×5
     features.add_module('f_relu2', nn.ReLU())
 
-    nf = 50 * 5**2
+    nf = 100 * 5**2
     nc = 10
 
     classifier = nn.Sequential()
     classifier.add_module('c_flat',  Flatten())
-    classifier.add_module('c_fc1',   nn.Linear(nf, nc))
+    classifier.add_module('c_fc1',   nn.Linear(nf, 1000))
+    classifier.add_module('c_relu1', nn.ReLU())
+    classifier.add_module('c_fc2',   nn.Linear(1000, nc))
     classifier.add_module('c_lsmax', nn.LogSoftmax(dim=1))
 
     domain = nn.Sequential()
@@ -248,79 +231,91 @@ def Ganin():
         features.to(dev)
         classifier.to(dev)
         domain.to(dev)
-
     to = _to
+    def _train():
+        features.train()
+        classifier.train()
+        domain.train()
+    train = _train
+    def _eval():
+        features.eval()
+        classifier.eval()
+        domain.eval()
+    eval = _eval
+
+    all_for_params = nn.Sequential(features, classifier)
     
     return obj_dic(locals())
 
 
-if True:
-    model = Ganin()
-        
-if False:
-    model = nn.Sequential()
-    model.add_module('f_bninput',   nn.BatchNorm2d(1))
-    model.add_module('f_conv1', nn.Conv2d(1, 16, kernel_size=5))
-    model.add_module('f_bn1',   nn.BatchNorm2d(16))
-    model.add_module('f_pool1', nn.MaxPool2d(4))
-    model.add_module('f_relu1', nn.ReLU())
-    model.add_module('f_conv2', nn.Conv2d(16, 50, kernel_size=2))
-    model.add_module('f_bn2',   nn.BatchNorm2d(50))
-    model.add_module('f_drop1', nn.Dropout2d())
-    model.add_module('f_pool2', nn.MaxPool2d(2))
-    model.add_module('f_relu2', nn.ReLU())
-    model.add_module('f_flat',  Flatten())
-    model.add_module('f_fc1',   nn.Linear(50*3*3, 10))
-    model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
-    
-model = model.to(device)
+ganin = Ganin()
+ganin.to(device)
 
-optimizer = optim.Adam(model.parameters(), lr=args.lr)#, weight_decay=1e-6)
+optimizer = optim.Adam(ganin.all_for_params.parameters(), lr=args.lr)#, weight_decay=1e-6)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
+
+# ~/auto-grade/AMC-parasite/torchlearn python train-emnist-ganin.py --epochs 1000 --lr 0.001 --batch-size 128
 
 def train(epoch):
     #train_loader = miniset1_loader
-    model.train()
-    for batch_idx, (data, target) in enumerate(train_loader):
-        if batch_idx == 0: save_image(data[0][0])
+    ganin.train()
+    for batch_idx, ((s_data, s_target), (t_data, _)) in enumerate(zip(train_loader, test_loader)):
+        #if batch_idx == 0: save_image(data[0][0])
         if batch_idx > len(train_loader)//20: break
-        data, target = data.to(device), target.to(device)
+        
+        s_data, s_target = s_data.to(device), s_target.to(device)
+        t_data = t_data.to(device)
         optimizer.zero_grad()
-        output = model(data)
-        loss = F.nll_loss(output, target)
+
+        s_f = ganin.features(s_data)
+        t_f = ganin.features(t_data)
+
+        c_loss = F.nll_loss(ganin.classifier(s_f), s_target)
+        dist_loss = (s_f.mean(0) - t_f.mean(0)).norm()
+
+        #output = model(data)
+        #loss = F.nll_loss(output, target)
+        loss = c_loss + dist_loss
+        print("LOSSES", c_loss.item(), dist_loss.item(), loss.item())
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
+                epoch, batch_idx * len(s_data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item()))
 
 def test(test_loader):
-    model.eval()
+    ganin.eval()
     test_loss = 0
     correct = 0
+    N = 0  #len(test_loader.dataset)
     with torch.no_grad():
-        for data, target in test_loader:
+        for batch_idx, (data, target) in enumerate(test_loader):
+            if batch_idx > len(train_loader)//30: break # relative to train set....
             data, target = data.to(device), target.to(device)
-            output = model(data)
+            output = ganin.classifier(ganin.features(data))
             test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
+            N += len(target)
 
     test_loss /= len(test_loader.dataset)
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
+        test_loss, correct, N,
+        100. * correct / N))
     return test_loss
 
 
 for epoch in range(1, args.epochs + 1):
+    print("Train")
     train(epoch)
-    #train_loss = test(train_loader)
-    #scheduler.step(train_loss)
+    print("Test (train set)")
+    train_loss = test(train_loader)
+    scheduler.step(train_loss)
+    print("Test (test set)")
     test_loss = test(test_loader)
-    scheduler.step(test_loss)
+    #scheduler.step(test_loss)
     #test_loss = test(miniset1_loader)
     #test_loss = test(miniset2_loader)
-    torch.save(model, "model-emnist.torch")
+    #torch.save(model, "model-emnist.torch")
     print('saved')
