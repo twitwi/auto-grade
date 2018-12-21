@@ -44,27 +44,30 @@ def go(x):
     _i+=1
     return x
 
-import kymatio
-scattering_transform = kymatio.Scattering2D(J=2, L=8, shape=(32,32))
-scatter = transforms.Lambda(lambda t: go(scattering_transform(t)[0,:,:,:]))
-scatter_contiguous = transforms.Lambda(lambda t: go(scattering_transform(t.contiguous())[0,:,:,:]))
+has_scatter = False
+
+if has_scatter:
+    import kymatio
+    scattering_transform = kymatio.Scattering2D(J=2, L=8, shape=(32,32))
+    scatter = transforms.Lambda(lambda t: go(scattering_transform(t)[0,:,:,:]))
+    scatter_contiguous = transforms.Lambda(lambda t: go(scattering_transform(t.contiguous())[0,:,:,:]))
+else:
+    scatter = transforms.Normalize((0.1307,), (0.3081,))
+    scatter_contiguous = scatter
 
 emnist_transforms = transforms.Compose([
-    transforms.Pad(2),
-    #transforms.Resize((28,28)),
-    #transforms.RandomAffine((90,90)),
+    #transforms.Pad(2), # for no augmentation
+    transforms.Pad(4), transforms.RandomAffine(20, (.2, .2), (0.7, 1.1), 20), transforms.CenterCrop(32), # aug
     transforms.ToTensor(),
     transforms.Lambda(lambda t: t.transpose(1, 2)),
     transforms.Normalize((1,), (-1,)), # Invert
     scatter_contiguous,
-    #transforms.Normalize((0.1307,), (0.3081,))
 ])
 custom_transforms = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.Resize((32,32)),
     transforms.ToTensor(),
     scatter,
-    #transforms.Normalize((0.1307,), (0.3081,))
 ])
 
 our_classes = "=:;.-_()[]!?*/"
@@ -111,9 +114,20 @@ def cache(ds, ondisk):
         torch.from_numpy(np.array(Y))
     )
 
-miniset1_dataset = cache(IF('miniset1'), ',,ms1')
-miniset2_dataset = cache(IF('miniset2'), ',,ms2')
-train_emnist_dataset = cache(datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms), ',,emtrain')
+if not has_scatter:
+    def cache(ds, ondisk):
+        return ds
+
+# the "balanced" version
+#miniset1_dataset = cache(IF('miniset1'), ',,ms1')
+#miniset2_dataset = cache(IF('miniset2'), ',,ms2')
+#train_emnist_dataset = cache(datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms), ',,emtraindigits')
+
+miniset1_dataset = cache(IF('miniset1-digits'), ',,ms1-digits')
+miniset2_dataset = cache(IF('miniset2-digits'), ',,ms2-digits')
+miniset3_dataset = cache(IF('miniset3-digits'), ',,ms3-digits')
+miniset4_dataset = cache(IF('miniset4-digits'), ',,ms4-digits')
+train_emnist_dataset = cache(datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='digits', transform=emnist_transforms), ',,emtraindigits') # !!! 280k, do not cache this
 
 def show_data():
     from matplotlib import pyplot as plt
@@ -121,12 +135,16 @@ def show_data():
     o = 0
     for i in range(20):
         plt.imshow(miniset1_dataset[random.randrange(len(miniset1_dataset))][0][0])
+        plt.colorbar()
         plt.savefig('input{:02d}.png'.format(o))
+        plt.close()
         o+=1
     em = train_emnist_dataset
     for i in range(20):
         plt.imshow(em[random.randrange(len(em))][0][0])
+        plt.colorbar()
         plt.savefig('input{:02d}.png'.format(o))
+        plt.close()
         o+=1
 
 #show_data()
@@ -135,13 +153,25 @@ def show_data():
 
 train_loader = torch.utils.data.DataLoader(
     torch.utils.data.ConcatDataset([
+        #miniset1_dataset,
         #miniset2_dataset,
+        #miniset3_dataset,
         train_emnist_dataset,
-        #miniset1_dataset, miniset1_dataset, miniset1_dataset,
-        #miniset1_dataset, miniset1_dataset, miniset1_dataset,
         #datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms)
     ]),
     batch_size=args.batch_size, shuffle=True, **kwargs)
+
+
+# how to subsample???
+#train_loader = torch.utils.data.random_split(train_emnist_dataset, [1000, len(train_emnist_dataset)-1000])[0]
+#print(train_loader[0])
+#train_loader = torch.utils.data.BatchSampler(
+#    torch.utils.data.SequentialSampler(train_loader),
+#    args.batch_size,
+#    True
+#)
+#print(train_loader)
+#print(enumerate(train_loader)[0])
 
 
 miniset1_loader = torch.utils.data.DataLoader(miniset1_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
@@ -150,59 +180,63 @@ miniset2_loader = torch.utils.data.DataLoader(miniset2_dataset, batch_size=args.
 test_loader = torch.utils.data.DataLoader(
     torch.utils.data.ConcatDataset([
         miniset1_dataset,
+        miniset2_dataset,
+        miniset3_dataset,
+        miniset4_dataset,
         #datasets.EMNIST('/tmp/REMI-data', train=False, split='balanced', transform=emnist_transforms),
     ]),
     batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-
-
-#class ENet(nn.Module):
-#    def __init__(self):
-#        super(ENet, self).__init__()
-#        self.conv1 = nn.Conv2d(1, 50, kernel_size=5)
-#        self.conv2 = nn.Conv2d(50, 100, kernel_size=3)
-#        self.conv2_drop = nn.Dropout2d()
-#        self.fc1 = nn.Linear(5**2*100, 4096)
-#        self.fc2 = nn.Linear(4096, 2048)
-#        self.fc3 = nn.Linear(2048, 47)
-#
-#    def forward(self, x):
-#        x = x.transpose(2, 3)
-#        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-#        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-#        x = x.view(-1, 5**2*100)
-#        x = F.relu(self.fc1(x))
-#        x = F.dropout(x, training=self.training)
-#        x = F.relu(self.fc2(x))
-#        x = self.fc3(x)
-#        return F.log_softmax(x, dim=1)
-#model = ENet().to(device)
 
 class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size()[0], -1)
                 
 model = nn.Sequential()
+if has_scatter:
+    model.add_module('f_conv1', nn.Conv2d(81, 100, kernel_size=3))
+    model.add_module('f_relu1', nn.ReLU())
+    model.add_module('f_bn1',   nn.BatchNorm2d(100))
+    model.add_module('f_flat',  Flatten())
+    model.add_module('f_fc1',   nn.Linear(100*6*6, 10))
+    model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
+else:
+    model.add_module('f_conv1', nn.Conv2d(1, 16, kernel_size=2))
+    model.add_module('f_bn1',   nn.BatchNorm2d(16))
+    model.add_module('f_relu1', nn.ReLU())
+    model.add_module('f_conv2', nn.Conv2d(16, 16, kernel_size=2))
+    model.add_module('f_bn2',   nn.BatchNorm2d(16))
+    model.add_module('f_relu2', nn.ReLU())
+    model.add_module('f_flat',  Flatten())
+    model.add_module('f_fc1',   nn.Linear(16*30*30, 10))
+    model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
 
-#model.add_module('f_conv1', nn.Conv2d(81, 1, kernel_size=1))
-model.add_module('f_flat',  Flatten())
-model.add_module('f_fc1',   nn.Linear(81*8*8, 1000))
-model.add_module('f_relu1', nn.PReLU())
-model.add_module('f_fc2',   nn.Linear(1000, 1000))
-model.add_module('f_relu2', nn.PReLU())
-model.add_module('f_fc2b',   nn.Linear(1000, len(classes) ))
-model.add_module('f_relu2b', nn.PReLU())
-model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
-
+if True:
+    model = nn.Sequential()
+    model.add_module('f_bninput',   nn.BatchNorm2d(1))
+    model.add_module('f_conv1', nn.Conv2d(1, 16, kernel_size=5))
+    model.add_module('f_bn1',   nn.BatchNorm2d(16))
+    model.add_module('f_pool1', nn.MaxPool2d(4))
+    model.add_module('f_relu1', nn.ReLU())
+    model.add_module('f_conv2', nn.Conv2d(16, 50, kernel_size=2))
+    model.add_module('f_bn2',   nn.BatchNorm2d(50))
+    model.add_module('f_drop1', nn.Dropout2d())
+    model.add_module('f_pool2', nn.MaxPool2d(2))
+    model.add_module('f_relu2', nn.ReLU())
+    model.add_module('f_flat',  Flatten())
+    model.add_module('f_fc1',   nn.Linear(50*3*3, 10))
+    model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
+    
 model = model.to(device)
 
-optimizer = optim.Adam(model.parameters(), lr=args.lr)
+optimizer = optim.Adam(model.parameters(), lr=args.lr)#, weight_decay=1e-6)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
 def train(epoch):
     #train_loader = miniset1_loader
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
+        if batch_idx > len(train_loader)//20: break
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
@@ -235,11 +269,11 @@ def test(test_loader):
 
 for epoch in range(1, args.epochs + 1):
     train(epoch)
-    train_loss = test(train_loader)
-    scheduler.step(train_loss)
+    #train_loss = test(train_loader)
+    #scheduler.step(train_loss)
     test_loss = test(test_loader)
     scheduler.step(test_loss)
     #test_loss = test(miniset1_loader)
     #test_loss = test(miniset2_loader)
-    #torch.save(model, "model-emnist.torch")
+    torch.save(model, "model-emnist.torch")
     print('saved')
