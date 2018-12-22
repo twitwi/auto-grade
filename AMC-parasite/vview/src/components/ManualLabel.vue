@@ -125,6 +125,6 @@ export default {
 .scroller .element { min-width: 75px; }
 .scroller img { box-sizing: border-box; border: 2px dotted green; min-width: 75px; max-width: 75px;}
 .scroller img.current { border: 2px solid black; }
-.scroller .annotation { border-bottom: 1px solid black; }
+.scroller .annotation { border-bottom: 1px solid black; font-family: monospace; }
 .focus { width: 100%; }
 </style>

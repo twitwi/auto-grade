@@ -77,46 +77,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5, stride=1)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5, stride=1)
-        self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
-        self.fc2 = nn.Linear(50, 10)
-
-    def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 320)
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x, training=self.training)
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
-
-class ENet(nn.Module):
-    def __init__(self):
-        super(ENet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 150)
-        self.fc2 = nn.Linear(150, 47)
-
-    def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 320)
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x, training=self.training)
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
-
-
-
-
-
 import numpy as np
 import torch
 import torchvision
@@ -212,7 +172,7 @@ def on_test3(data):
             pred = net(torch.from_numpy(np.array(ims)))
         amax = np.argmax(pred.numpy(), axis=1)
         print(amax, pred.numpy())
-        our_classes = "=:.-_()[]!?*/"
+        our_classes = "=:;.,-_()[]!?*/'"
         classes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"+our_classes
         for i,r in pairs:
             char = classes[int(amax[i])]
@@ -276,7 +236,7 @@ def on_miniset_export(data):
     name = data['name']
     print("Exporting miniset", name)
     sub = 'miniset/'+name
-    directory = './vview/public-custom/'+sub
+    directory = 'generated/'+sub
     if not os.path.exists(directory):
         os.makedirs(directory)
     else:
