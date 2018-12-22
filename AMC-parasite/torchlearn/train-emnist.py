@@ -11,12 +11,12 @@ import numpy as np
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch EMNIST')
-parser.add_argument('--batch-size', type=int, default=8, metavar='N',
-                    help='input batch size for training (default: 8)')
+parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+                    help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                    help='number of epochs to train (default: 10)')
+parser.add_argument('--epochs', type=int, default=100, metavar='N',
+                    help='number of epochs to train (default: 100)')
 parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                     help='learning rate (default: 0.001)')
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
@@ -70,26 +70,32 @@ custom_transforms = transforms.Compose([
     scatter,
 ])
 
-our_classes = "=:;.-_()[]!?*/"
+our_classes = "=:;.,-_()[]!?*/'"
 classes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"+our_classes
 
-def map_target_folder(d):
-    globit = glob.glob(d+'/*')
+def map_target_folder(d, ifolder):
+    #globit = sorted(glob.glob(d+'/*'))
+    #print(globit)
     def __sub__(t):
-        folder = globit[t]
+        #folder = globit[t]
+        folder = ifolder.classes[t].replace(r'class-', '')
         try:
-            i = classes.index(folder[-1])
+            i = classes.index(folder)
         except:
             try:
-                i = classes.index(folder[-1].upper())
+                i = classes.index(folder.upper())
             except:
-                #print(folder, "is not a class... replacing by 0")
+                print(folder, "is not a class... replacing by W")
                 i = classes.index('W') # dummy class.....
         #print(i, folder, folder[-1])
         return torch.tensor(i, dtype=torch.long)
     return __sub__
 
-IF = lambda d: datasets.ImageFolder(d, transform=custom_transforms, target_transform=map_target_folder(d))
+def IF(d):
+    res = datasets.ImageFolder(d, transform=custom_transforms)
+    res.target_transform = map_target_folder(d, res)
+    return res
+
 def cache(ds, ondisk):
     l = len(ds)
     import pickle
@@ -119,17 +125,25 @@ if not has_scatter:
         return ds
 
 # the "balanced" version
-#miniset1_dataset = cache(IF('miniset1'), ',,ms1')
-#miniset2_dataset = cache(IF('miniset2'), ',,ms2')
-#train_emnist_dataset = cache(datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms), ',,emtraindigits')
+miniset1_dataset = cache(IF('miniset1'), ',,ms1')
+miniset2_dataset = cache(IF('miniset2'), ',,ms2')
+miniset3_dataset = cache(IF('miniset3'), ',,ms3')
+miniset4_dataset = cache(IF('miniset4'), ',,ms4')
+train_emnist_dataset = cache(datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms), ',,emtrain')
 
-miniset1_dataset = cache(IF('miniset1-digits'), ',,ms1-digits')
-miniset2_dataset = cache(IF('miniset2-digits'), ',,ms2-digits')
-miniset3_dataset = cache(IF('miniset3-digits'), ',,ms3-digits')
-miniset4_dataset = cache(IF('miniset4-digits'), ',,ms4-digits')
-train_emnist_dataset = cache(datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='digits', transform=emnist_transforms), ',,emtraindigits') # !!! 280k, do not cache this
+print(miniset1_dataset.class_to_idx)
+print(miniset2_dataset.class_to_idx)
+print(miniset3_dataset.class_to_idx)
+print(miniset4_dataset.class_to_idx)
 
-def save_image(im):
+# the "digits" version
+#miniset1_dataset = cache(IF('miniset1-digits'), ',,ms1-digits')
+#miniset2_dataset = cache(IF('miniset2-digits'), ',,ms2-digits')
+#miniset3_dataset = cache(IF('miniset3-digits'), ',,ms3-digits')
+#miniset4_dataset = cache(IF('miniset4-digits'), ',,ms4-digits')
+#train_emnist_dataset = cache(datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='digits', transform=emnist_transforms), ',,emtraindigits') # !!! 280k, do not cache this
+
+def save_image(im, t=''):
     from matplotlib import pyplot as plt
     try:
         save_image.counter += 1
@@ -137,7 +151,10 @@ def save_image(im):
         save_image.counter = 0
     plt.imshow(im)
     plt.colorbar()
-    plt.savefig('input{:05d}.png'.format(save_image.counter))
+    try:
+        plt.savefig('input{:05d}-{}.png'.format(save_image.counter, classes[t]))
+    except:
+        pass
     plt.close()
     
 def show_data():
@@ -154,10 +171,11 @@ def show_data():
 
 train_loader = torch.utils.data.DataLoader(
     torch.utils.data.ConcatDataset([
-        #miniset1_dataset,
-        #miniset2_dataset,
-        #miniset3_dataset,
-        train_emnist_dataset,
+        miniset1_dataset,
+        miniset2_dataset,
+        miniset3_dataset,
+        miniset4_dataset,
+        #train_emnist_dataset,
         #datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms)
     ]),
     batch_size=args.batch_size, shuffle=True, **kwargs)
@@ -180,9 +198,9 @@ miniset2_loader = torch.utils.data.DataLoader(miniset2_dataset, batch_size=args.
 
 test_loader = torch.utils.data.DataLoader(
     torch.utils.data.ConcatDataset([
-        miniset1_dataset,
-        miniset2_dataset,
-        miniset3_dataset,
+        #miniset1_dataset,
+        #miniset2_dataset,
+        #miniset3_dataset,
         miniset4_dataset,
         #datasets.EMNIST('/tmp/REMI-data', train=False, split='balanced', transform=emnist_transforms),
     ]),
@@ -199,7 +217,7 @@ if has_scatter:
     model.add_module('f_relu1', nn.ReLU())
     model.add_module('f_bn1',   nn.BatchNorm2d(100))
     model.add_module('f_flat',  Flatten())
-    model.add_module('f_fc1',   nn.Linear(100*6*6, 10))
+    model.add_module('f_fc1',   nn.Linear(100*6*6, len(classes)))
     model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
 else:
     model.add_module('f_conv1', nn.Conv2d(1, 16, kernel_size=2))
@@ -209,7 +227,7 @@ else:
     model.add_module('f_bn2',   nn.BatchNorm2d(16))
     model.add_module('f_relu2', nn.ReLU())
     model.add_module('f_flat',  Flatten())
-    model.add_module('f_fc1',   nn.Linear(16*30*30, 10))
+    model.add_module('f_fc1',   nn.Linear(16*30*30, len(classes)))
     model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
 
 def obj_dic(d):
@@ -219,45 +237,7 @@ def obj_dic(d):
         setattr(top, i, j)
     return top
 
-def Ganin():
-    features = nn.Sequential()
-    features.add_module('f_conv1', nn.Conv2d(1, 64, kernel_size=5))
-    features.add_module('f_bn1',   nn.BatchNorm2d(64))
-    features.add_module('f_pool1', nn.MaxPool2d(2))  # 14×14
-    features.add_module('f_relu1', nn.ReLU())
-    features.add_module('f_conv2', nn.Conv2d(64, 50, kernel_size=5))
-    features.add_module('f_bn2',   nn.BatchNorm2d(50))
-    features.add_module('f_drop1', nn.Dropout2d())
-    features.add_module('f_pool2', nn.MaxPool2d(2))  # 5×5
-    features.add_module('f_relu2', nn.ReLU())
-
-    nf = 50 * 5**2
-    nc = 10
-
-    classifier = nn.Sequential()
-    classifier.add_module('c_flat',  Flatten())
-    classifier.add_module('c_fc1',   nn.Linear(nf, nc))
-    classifier.add_module('c_lsmax', nn.LogSoftmax(dim=1))
-
-    domain = nn.Sequential()
-    domain.add_module('d_flat',  Flatten())
-    domain.add_module('d_fc1',   nn.Linear(nf, 2))  # 2 domains
-    domain.add_module('d_lsmax', nn.LogSoftmax(dim=1))
-
-    def _to(dev):
-        features.to(dev)
-        classifier.to(dev)
-        domain.to(dev)
-
-    to = _to
-    
-    return obj_dic(locals())
-
-
 if True:
-    model = Ganin()
-        
-if False:
     model = nn.Sequential()
     model.add_module('f_bninput',   nn.BatchNorm2d(1))
     model.add_module('f_conv1', nn.Conv2d(1, 16, kernel_size=5))
@@ -270,7 +250,7 @@ if False:
     model.add_module('f_pool2', nn.MaxPool2d(2))
     model.add_module('f_relu2', nn.ReLU())
     model.add_module('f_flat',  Flatten())
-    model.add_module('f_fc1',   nn.Linear(50*3*3, 10))
+    model.add_module('f_fc1',   nn.Linear(50*3*3, len(classes)))
     model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
     
 model = model.to(device)
@@ -282,7 +262,7 @@ def train(epoch):
     #train_loader = miniset1_loader
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
-        if batch_idx == 0: save_image(data[0][0])
+        if batch_idx == 0: save_image(data[0][0], target[0])
         if batch_idx > len(train_loader)//20: break
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -300,7 +280,8 @@ def test(test_loader):
     test_loss = 0
     correct = 0
     with torch.no_grad():
-        for data, target in test_loader:
+        for batch_idx, (data, target) in enumerate(test_loader):
+            if batch_idx == 0: save_image(data[0][0], target[0])
             data, target = data.to(device), target.to(device)
             output = model(data)
             test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
