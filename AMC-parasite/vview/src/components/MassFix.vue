@@ -93,6 +93,10 @@ export default {
         this.currentImage = 0
         this.currentClass++
       } else
+      if (k === 'Escape') {
+        this.currentImage = 0
+        this.currentClass = 0
+      } else
       if (k === 'ArrowRight') {
         this.currentImage++
       } else

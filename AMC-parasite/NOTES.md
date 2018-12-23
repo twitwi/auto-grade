@@ -100,6 +100,15 @@ scp labslurm:auto-grade/AMC-parasite/torchlearn/model-emnist.torch .
 ~~~
 
 
+Sets:
+1. 1-5
+2. 6-10
+3. 11-15
+4. 16-20
+5. 21-34
+6. wip 35-56 (remove ' ')
+
+
 
 
 
