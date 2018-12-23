@@ -114,7 +114,7 @@ def cache(ds, ondisk):
         Y = np.array(Y)
         with open(ondisk, 'wb') as out:
             pickle.dump((X,Y), out)
-        
+
     return torch.utils.data.TensorDataset(
         torch.from_numpy(np.array(X)),
         torch.from_numpy(np.array(Y))
@@ -152,11 +152,11 @@ def save_image(im, t=''):
     plt.imshow(im)
     plt.colorbar()
     try:
-        plt.savefig('input{:05d}-{}.png'.format(save_image.counter, classes[t]))
+        plt.savefig('input{:05d}-{}.png'.format(save_image.counter, t))
     except:
         pass
     plt.close()
-    
+
 def show_data():
     import random
     for i in range(20):
@@ -210,7 +210,7 @@ test_loader = torch.utils.data.DataLoader(
 class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size()[0], -1)
-                
+
 model = nn.Sequential()
 if has_scatter:
     model.add_module('f_conv1', nn.Conv2d(81, 100, kernel_size=3))
@@ -252,7 +252,7 @@ if True:
     model.add_module('f_flat',  Flatten())
     model.add_module('f_fc1',   nn.Linear(50*3*3, len(classes)))
     model.add_module('f_lsmax', nn.LogSoftmax(dim=1))
-    
+
 model = model.to(device)
 
 optimizer = optim.Adam(model.parameters(), lr=args.lr)#, weight_decay=1e-6)
@@ -262,7 +262,7 @@ def train(epoch):
     #train_loader = miniset1_loader
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
-        if batch_idx == 0: save_image(data[0][0], target[0])
+        if batch_idx == 0: save_image(data[0][0], classes[target[0]])
         if batch_idx > len(train_loader)//20: break
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -281,7 +281,7 @@ def test(test_loader):
     correct = 0
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(test_loader):
-            if batch_idx == 0: save_image(data[0][0], target[0])
+            if batch_idx == 0: save_image(data[0][0], classes[target[0]])
             data, target = data.to(device), target.to(device)
             output = model(data)
             test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
