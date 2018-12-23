@@ -82,6 +82,10 @@ ssh labslurm
 srun -p GPU --gres=gpu:gtxp:1 -I -N 1 -c 1 --mem=12000 --pty -t 0-4:05 /bin/bash
 source VENV-AUTOGRADE/bin/activate
 cd auto-grade/AMC-parasite/torchlearn/
+python3 train-emnist.py
+# and to convert to cpu
+mv model-emnist.torch model-emnist-gpu.torch
+python3 gpu-to-cpu.py model-emnist-gpu.torch model-emnist.torch
 
 # term 2
 ssh labslurm
@@ -90,6 +94,8 @@ emacs -nw auto-grade/AMC-parasite/torchlearn/train-emnist.py
 
 # term 3
 scp labslurm:auto-grade/AMC-parasite/torchlearn/input*.png /tmp/ ; gthumb /tmp/input*.png
+cd projects/auto-grade/AMC-parasite/resources/
+scp labslurm:auto-grade/AMC-parasite/torchlearn/model-emnist.torch .
 
 ~~~
 
