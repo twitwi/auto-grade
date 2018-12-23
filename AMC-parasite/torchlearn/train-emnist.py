@@ -15,8 +15,8 @@ parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=100, metavar='N',
-                    help='number of epochs to train (default: 100)')
+parser.add_argument('--epochs', type=int, default=300, metavar='N',
+                    help='number of epochs to train (default: 300)')
 parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                     help='learning rate (default: 0.001)')
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
@@ -129,12 +129,14 @@ miniset1_dataset = cache(IF('miniset1'), ',,ms1')
 miniset2_dataset = cache(IF('miniset2'), ',,ms2')
 miniset3_dataset = cache(IF('miniset3'), ',,ms3')
 miniset4_dataset = cache(IF('miniset4'), ',,ms4')
+miniset5_dataset = cache(IF('miniset5'), ',,ms5')
+miniset6_dataset = cache(IF('miniset6'), ',,ms6')
 train_emnist_dataset = cache(datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms), ',,emtrain')
 
-print(miniset1_dataset.class_to_idx)
-print(miniset2_dataset.class_to_idx)
-print(miniset3_dataset.class_to_idx)
-print(miniset4_dataset.class_to_idx)
+#print(miniset1_dataset.class_to_idx)
+#print(miniset2_dataset.class_to_idx)
+#print(miniset3_dataset.class_to_idx)
+#print(miniset4_dataset.class_to_idx)
 
 # the "digits" version
 #miniset1_dataset = cache(IF('miniset1-digits'), ',,ms1-digits')
@@ -175,6 +177,8 @@ train_loader = torch.utils.data.DataLoader(
         miniset2_dataset,
         miniset3_dataset,
         miniset4_dataset,
+        miniset5_dataset,
+        miniset6_dataset,
         #train_emnist_dataset,
         #datasets.EMNIST('/tmp/REMI-data', train=True, download=True, split='balanced', transform=emnist_transforms)
     ]),
@@ -193,15 +197,17 @@ train_loader = torch.utils.data.DataLoader(
 #print(enumerate(train_loader)[0])
 
 
-miniset1_loader = torch.utils.data.DataLoader(miniset1_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
-miniset2_loader = torch.utils.data.DataLoader(miniset2_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+#miniset1_loader = torch.utils.data.DataLoader(miniset1_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+#miniset2_loader = torch.utils.data.DataLoader(miniset2_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
 test_loader = torch.utils.data.DataLoader(
     torch.utils.data.ConcatDataset([
-        #miniset1_dataset,
-        #miniset2_dataset,
-        #miniset3_dataset,
+        miniset1_dataset,
+        miniset2_dataset,
+        miniset3_dataset,
         miniset4_dataset,
+        miniset5_dataset,
+        miniset6_dataset,
         #datasets.EMNIST('/tmp/REMI-data', train=False, split='balanced', transform=emnist_transforms),
     ]),
     batch_size=args.test_batch_size, shuffle=True, **kwargs)
@@ -303,5 +309,5 @@ for epoch in range(1, args.epochs + 1):
     scheduler.step(test_loss)
     #test_loss = test(miniset1_loader)
     #test_loss = test(miniset2_loader)
-    torch.save(model, "model-emnist.torch")
+    torch.save(model, "model-emnist-ALT.torch")
     print('saved')
