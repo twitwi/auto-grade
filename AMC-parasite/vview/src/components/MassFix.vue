@@ -13,11 +13,11 @@
     <br/>
     <button @keydown="keydown($event)">FOCUS</button>
 
-    <div v-for="([k, l], ind) in byLetter" :key="k" v-if="Math.abs(currentClass-ind) < 2">
+    <div v-for="([k, l], ind) in byLetterFiltered" :key="k">
       <h3>Classified as <code>{{ k }}</code></h3>
       <div class="scroller" :style="{ 'margin-left': (400-75*currentImage)+'px'}" @click.right.prevent="focus('cr/page-'+currentUser+'-'+response[currentUser][currentImage][4]+'.jpg')">
         <div v-for="(i,ii) in l" :key="i[i.length-1]" class="element">
-          <img v-if="Math.abs(currentImage+5-ii) < 11" :src="svPath + i[i.length-1]+'?'+currentUser" :class="{'current': currentClass == ind && currentImage == ii}" />
+          <img v-if="Math.abs(currentImage+5-ii) < 11" :src="svPath + i[i.length-1]+'?'+currentUser" :class="{'current': indOfCurrentClassInFiltered == ind && currentImage == ii}" />
           <br/>
           <span v-if="annotations[i[0]]" class="annotation">{{annotations[i[0]]}}</span>
         </div>
@@ -67,13 +67,19 @@ export default {
   computed: {
     ...mapState(['connected', 'error', 'message']),
     byLetter () {
-      if (this.response === undefined) return {}
-      if (this.response[this.currentUser] === undefined) return {}
+      if (this.response === undefined) return []
+      if (this.response[this.currentUser] === undefined) return []
       let res = []
       for (let c of config.classes) {
         res.push([c, this.response[this.currentUser].filter((o, i) => this.annotations[i] === c)])
       }
       return res
+    },
+    indOfCurrentClassInFiltered () {
+      return this.byLetterFiltered.indexOf(this.byLetter[this.currentClass])
+    },
+    byLetterFiltered () {
+      return this.byLetter.filter((o, i) => Math.abs(this.currentClass - i) < 2)
     }
   },
   methods: {
