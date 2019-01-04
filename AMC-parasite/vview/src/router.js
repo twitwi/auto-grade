@@ -6,6 +6,7 @@ import Router from 'vue-router'
 import ManualLabel from './components/ManualLabel'
 import MinisetBuilder from './components/MinisetBuilder'
 import MassFix from './components/MassFix'
+import ExamId from './components/ExamId'
 
 Vue.use(Router)
 
@@ -16,6 +17,7 @@ export default new Router({
     r('/manual-label', ManualLabel),
     r('/miniset-builder', MinisetBuilder),
     r('/mass-fix', MassFix),
+    r('/exam-id', ExamId),
     {
       path: '/about',
       name: 'about',

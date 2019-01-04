@@ -1,6 +1,4 @@
 
-
-
 from flask import Flask, render_template, send_from_directory
 from flask_socketio import SocketIO, join_room, emit
 
@@ -8,7 +6,9 @@ import time
 import os
 import shutil
 import codecs
-
+import yaml
+import openpyxl
+from itertools import islice
 
 # pip3 install flask flask-socketio eventlet
 # https://secdevops.ai/weekend-project-part-2-turning-flask-into-a-real-time-websocket-server-using-flask-socketio-ab6b45f1d896
@@ -209,6 +209,50 @@ def on_miniset_export(data):
             #    out_file.write(ann[str(i)])
     print("WROTE", directory)
 
+def noop(*args, **kwargs): pass
+def lmap(*args, **kwargs): return list(map(*args, **kwargs))
+def at(k):                 return lambda o: o[k]
+def attr_value():          return lambda o: o.value
+def of(o):                 return lambda k: o[k]
+
+
+row_elements = 'username firstname lastname group examid'.split(' ')
+
+def read_config(pro, filename='parasite.yaml', print=noop):
+    with open(pro + '/' + filename) as f:
+        cfg = yaml.load(f)
+    def withdef(path, v, o=cfg, prev=''):
+        if '/' in path:
+            splt = path.split('/', 1)
+            withdef(splt[1], v, o[splt[0]], prev+'→'+splt[0])
+        else:
+            if path not in o:
+                print("At", prev+'→'+path, "--- Setting default", v)
+                o[path] = v
+            else:
+                print("At", prev+'→'+path, "--- Keeping", o[path], "vs default", v)
+    for h in row_elements:
+        withdef('headers/'+h, h)
+    return cfg
+
+@socketio.on('xlsx-structured-rows')
+def on_xlsx_read_rows(data):
+    cfg = read_config(local_MC + data['pro'])
+    xlfile = local_MC + data['pro'] + '/parasite.xlsx'
+    wb = openpyxl.load_workbook(filename = xlfile)
+    ws = wb[wb.sheetnames[0]]
+    def digest_header_into_index_access():
+        headers = lmap(attr_value(), ws['1'])
+        headers_lookup = { v: i for i,v in enumerate(headers) }
+        cfg_mapped = lmap(lambda h: cfg['headers'][h], row_elements)
+        return lmap(of(headers_lookup), cfg_mapped)
+
+    row_indices = digest_header_into_index_access()
+    res = []
+    for i, row in islice(enumerate(ws.rows), 1, None):
+        cells = lmap(of(row), row_indices)
+        res.append(lmap(attr_value(), cells))
+    emit('got-xlsx-structured-rows', res)
 
 
 if __name__ == '__main__':
