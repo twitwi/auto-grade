@@ -6,13 +6,16 @@ import time
 import os
 import shutil
 import codecs
-import yaml
 import openpyxl
 from itertools import islice
 
+from tools_querysqlite import *
+from tools_usetorch import *
+from tools_generic import *
+
 # pip3 install flask flask-socketio eventlet
 # https://secdevops.ai/weekend-project-part-2-turning-flask-into-a-real-time-websocket-server-using-flask-socketio-ab6b45f1d896
-
+# pip3 install openpyxl yaml
 
 # initialize Flask
 #app = Flask(__name__, template_folder='flask-ws')
@@ -35,83 +38,8 @@ def index():
     """Serve the index HTML"""
     return render_template('plain-index.html')
 
-from scipy.misc import imread, imsave
-import io
-import sqlite3
-def make_connection(p):
-    return sqlite3.connect(p)
-def asbase64(im):
-    import base64
-    return base64.b64encode(im).decode('ascii')
-def assuch(im): return im
-def preload_all_queries(conn, more='', improcess=asbase64):
-    c = conn.cursor()
-    c.execute('''SELECT id_a,student,* FROM capture_zone WHERE type=4 '''+more+''' ORDER BY student,id_a,id_b ASC''')
-    res = {}
-    for r in c.fetchall():
-        k = r[1]
-        if not (k in res):
-            res[k] = []
-        #r = r[:-1] + (imread(io.BytesIO(r[-1])),)
-        #import pytesseract
-        #print(pytesseract.image_to_string(imread(io.BytesIO(r[-1])), config='--psm 10'))
-        # ^ doesn't seem to work too well on this data
-        r = r[:-1] + (improcess(r[-1]),)
-        res[k].append(r)
-    return res
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-import numpy as np
-import torch
-import torchvision
-from torchvision import transforms
-#import pretrainedmnist
-transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize((60,60)),
-    #transforms.Resize((42,28)),
-    #transforms.CenterCrop((28,28)),
-    #transforms.Grayscale(),
-    transforms.ToTensor(),
-    ])
 
 
-class Flatten(nn.Module):
-    def forward(self, x):
-        return x.view(x.size()[0], -1)
-
-def save_image(im, t=''):
-    from matplotlib import pyplot as plt
-    try:
-        save_image.counter += 1
-    except:
-        save_image.counter = 0
-    plt.imshow(im)
-    plt.colorbar()
-    try:
-        plt.savefig('input-local{:05d}-{}.png'.format(save_image.counter, t))
-    except:
-        pass
-    plt.close()
-
-
-custom_transforms = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Grayscale(num_output_channels=1),
-    transforms.Resize((32,32)),
-    transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,)),
-])
-
-def bytes2im(byts):
-    im = imread(io.BytesIO(byts))
-    im = custom_transforms(im)
-    im = im.numpy()
-    #save_image(im[0])
-    return im
 
 
 @socketio.on('manual-load-images')
@@ -209,31 +137,6 @@ def on_miniset_export(data):
             #    out_file.write(ann[str(i)])
     print("WROTE", directory)
 
-def noop(*args, **kwargs): pass
-def lmap(*args, **kwargs): return list(map(*args, **kwargs))
-def at(k):                 return lambda o: o[k]
-def attr_value():          return lambda o: o.value
-def of(o):                 return lambda k: o[k]
-
-
-row_elements = 'username firstname lastname group examid'.split(' ')
-
-def read_config(pro, filename='parasite.yaml', print=noop):
-    with open(pro + '/' + filename) as f:
-        cfg = yaml.load(f)
-    def withdef(path, v, o=cfg, prev=''):
-        if '/' in path:
-            splt = path.split('/', 1)
-            withdef(splt[1], v, o[splt[0]], prev+'→'+splt[0])
-        else:
-            if path not in o:
-                print("At", prev+'→'+path, "--- Setting default", v)
-                o[path] = v
-            else:
-                print("At", prev+'→'+path, "--- Keeping", o[path], "vs default", v)
-    for h in row_elements:
-        withdef('headers/'+h, h)
-    return cfg
 
 @socketio.on('xlsx-structured-rows')
 def on_xlsx_read_rows(data):
