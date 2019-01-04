@@ -7,6 +7,7 @@ from flask_socketio import SocketIO, join_room, emit
 import time
 import os
 import shutil
+import codecs
 
 
 # pip3 install flask flask-socketio eventlet
@@ -118,9 +119,9 @@ def on_manual_load_images(data):
     predict = 'predict' in data
     print('SQL QUERY')
     if 'only' in data:
-        info = preload_all_queries(make_connection(local_MC+data['pro']+'/data/capture.sqlite'), more=' AND student='+str(data['only']), improcess=assuch)
+        info = preload_all_queries(make_connection(local_MC + data['pro'] + '/data/capture.sqlite'), more=' AND student='+str(data['only']), improcess=assuch)
     else:
-        info = preload_all_queries(make_connection(local_MC+data['pro']+'/data/capture.sqlite'), improcess=assuch)
+        info = preload_all_queries(make_connection(local_MC + data['pro'] + '/data/capture.sqlite'), improcess=assuch)
 	# 0id_answer 1student
     # 2`zoneid`	INTEGER, 3`student`	INTEGER, 4`page`	INTEGER, 5`copy`	INTEGER, 6`type`	INTEGER, 7`id_a`	INTEGER, 8`id_b`	INTEGER,
     # 9`total`	INTEGER DEFAULT -1, 10`black`	INTEGER DEFAULT -1, 11`manual`	REAL DEFAULT -1, 12`image`	TEXT, 13`imagedata`	BLOB,
@@ -163,17 +164,17 @@ def on_manual_load_images(data):
     info['_id'] = data['_id']
     emit('manual-loaded-images', info)
 
-@socketio.on('manual-log') # TODO should probably scope the logs (into the project dir)
+@socketio.on('manual-log')
 def on_manual_log(data):
-    import codecs
-    with codecs.open("all-logs-manual.jstream", "a", "utf-8") as f:
-        f.write(data)
+    logfile = local_MC + data['pro'] + '/parasite-logs-manual.jstream'
+    with codecs.open(logfile, "a", "utf-8") as f:
+        f.write(data['data'])
     print("saved")
 
 @socketio.on('miniset-get-logs')
 def on_miniset_getlogs(data):
-    import codecs
-    with codecs.open("all-logs-manual.jstream", "r", "utf-8") as f:
+    logfile = local_MC + data['pro'] + '/parasite-logs-manual.jstream'
+    with codecs.open(logfile, "r", "utf-8") as f:
         emit('miniset-got-logs', list(map(lambda l: l[:-1], f.readlines())))
 
 @socketio.on('miniset-export')
@@ -190,7 +191,7 @@ def on_miniset_export(data):
     for d in data['annotations']:
         student = d[0]
         ann = d[1]
-        info = preload_all_queries(make_connection(local_MC+data['pro']+'/data/capture.sqlite'), more=' AND student='+str(student), improcess=assuch)
+        info = preload_all_queries(make_connection(local_MC + data['pro'] + '/data/capture.sqlite'), more=' AND student='+str(student), improcess=assuch)
         info = info[int(student)]
         for i, r in list(enumerate(info)):
             if not str(i) in ann:

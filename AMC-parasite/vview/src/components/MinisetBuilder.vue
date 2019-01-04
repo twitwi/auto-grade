@@ -39,7 +39,7 @@ export default {
   },
   methods: {
     loadLogs () {
-      this.$socket.emit('miniset-get-logs', {})
+      this.$socket.emit('miniset-get-logs', { pro: this.projectDir })
     },
     exportMiniset () {
       let name = new Date().toISOString().replace(/T.*/, '-' + Date.now())

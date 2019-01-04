@@ -106,8 +106,8 @@ export default {
       console.log(w)
     },
     save () {
-      let toLog = [this.currentUser, this.annotations]
-      this.$socket.emit('manual-log', JSON.stringify(toLog) + '\n') // send a string for easier printing on the other side
+      let toLog = { pro: this.projectDir, data: JSON.stringify([this.currentUser, this.annotations]) + '\n' }
+      this.$socket.emit('manual-log', toLog) // send a string for easier printing on the other side
     },
     click () {
       console.log('CLICK')
