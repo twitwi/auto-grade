@@ -6,8 +6,6 @@
       <router-link to="/mass-fix" class="pseudo button icon-picture">MassFix</router-link>
       <span>///</span>
       <router-link to="/">Home</router-link>
-      <router-link to="/test2" class="pseudo button icon-picture">Raw</router-link>
-      <router-link to="/annotate1" class="pseudo button icon-picture">Annotate</router-link>
     </div>
     <router-view/>
   </div>
