@@ -238,7 +238,7 @@ def on_manual_load_images(data):
     # 9`total`	INTEGER DEFAULT -1, 10`black`	INTEGER DEFAULT -1, 11`manual`	REAL DEFAULT -1, 12`image`	TEXT, 13`imagedata`	BLOB,
     if predict:
         print("Loading pytorch model")
-        net = torch.load('resources/model-emnist3.torch').to(torch.device('cpu'))
+        net = torch.load('resources/model-emnist4big.torch').to(torch.device('cpu'))
     print('...DONE')
     sub = 'pyannotate'
     directory = './generated/'+sub
