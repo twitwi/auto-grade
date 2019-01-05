@@ -39,6 +39,7 @@ export default {
   },
   methods: {
     loadLogs () {
+      this.logs = []
       this.$socket.emit('miniset-get-logs', { pro: this.projectDir })
     },
     exportMiniset () {

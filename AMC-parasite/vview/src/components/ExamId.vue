@@ -35,6 +35,7 @@ export default {
   },
   methods: {
     loadXlsx () {
+      this.rows = []
       this.$socket.emit('xlsx-structured-rows', { pro: this.projectDir })
     },
     exportMiniset () {
