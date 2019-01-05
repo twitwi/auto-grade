@@ -1,6 +1,7 @@
 
 import yaml
 
+local_MC = './,,test/'
 row_elements = 'username firstname lastname group examid'.split(' ')
 
 def noop(*args, **kwargs): pass
