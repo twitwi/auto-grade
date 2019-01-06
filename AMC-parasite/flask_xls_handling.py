@@ -33,3 +33,8 @@ def on_xlsx_read_rows(data):
         cells = lmap(of(row), row_indices)
         res.append(lmap(attr_value(), cells))
     emit('got-xlsx-structured-rows', res)
+
+@socketio.on('yaml-config')
+def on_get_yaml_config(data):
+    cfg = read_config(local_MC + data['pro'])
+    emit('got-yaml-config', cfg)

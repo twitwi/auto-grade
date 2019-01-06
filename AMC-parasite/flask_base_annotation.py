@@ -19,10 +19,14 @@ from flask_app import socketio
 def on_manual_load_images(data):
     predict = 'predict' in data
     print('SQL QUERY')
+    more=''
+    if 'onlyq' in data:
+        more += ' AND id_a=' + str(data['onlyq'])
     if 'only' in data:
-        info = preload_all_queries(make_connection(local_MC + data['pro'] + '/data/capture.sqlite'), more=' AND student='+str(data['only']), improcess=assuch)
-    else:
-        info = preload_all_queries(make_connection(local_MC + data['pro'] + '/data/capture.sqlite'), improcess=assuch)
+        more += ' AND student=' + str(data['only'])
+    if 'TMP' in data:
+        more += ' AND student > 10 AND student < 20'
+    info = preload_all_queries(make_connection(local_MC + data['pro'] + '/data/capture.sqlite'), more=more, improcess=assuch)
 	# 0id_answer 1student
     # 2`zoneid`	INTEGER, 3`student`	INTEGER, 4`page`	INTEGER, 5`copy`	INTEGER, 6`type`	INTEGER, 7`id_a`	INTEGER, 8`id_b`	INTEGER,
     # 9`total`	INTEGER DEFAULT -1, 10`black`	INTEGER DEFAULT -1, 11`manual`	REAL DEFAULT -1, 12`image`	TEXT, 13`imagedata`	BLOB,
@@ -36,11 +40,13 @@ def on_manual_load_images(data):
         shutil.rmtree(directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
+    j = 0
     for k,v in info.items():
         pairs = list(enumerate(v))
         ims = []
         for i,r in pairs:
-            n = "/im-" + str(i) + ".png"
+            n = "/im-" + str(j) + ".png"
+            j += 1
             #print('IMAGE', n)
             #print(info[k][:-2])
             #info[k].append(sub+n)

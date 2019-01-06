@@ -158,7 +158,10 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+/*
 .scroller { transition: margin 200ms; overflow: hidden; display: flex; }
+*/
+.scroller { transition: margin 300ms linear; overflow: hidden; display: flex; }
 .scroller { }
 .scroller .element { min-width: 75px; }
 .scroller img { box-sizing: border-box; border: 2px dotted green; min-width: 75px; max-width: 75px;}

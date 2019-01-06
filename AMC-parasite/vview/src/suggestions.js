@@ -13,13 +13,25 @@ m.set('3a', 0.9)
 m.set('0O', 0.1)
 m.set('0D', 0.11)
 m.set('DO', 0.12)
-m.set('1I', 0.1)
-m.set('1i', 0.1)
-m.set('1l', 0.1)
-m.set('lI', 0.2)
 m.set('zZ', 0.11)
 m.set('2Z', 0.2)
 m.set('2z', 0.2)
+m.set('5S', 0.2)
+m.set('9g', 0.2)
+m.set('9G', 0.2)
+
+m.set('_ ', 0.001)
+// group of i and 1
+let i1 = '1iIlL'
+for (let c of i1) {
+  for (let c2 of i1) {
+    m.set(c + c2, 0.1)
+  }
+}
+// capitals
+for (let c of 'abcdefghijklmnopqrstuvwxyz') {
+  m.set(c + c.toUpperCase(), 0.1)
+}
 
 function cost (gt, pred) {
   if (gt === pred) return 0
@@ -37,16 +49,18 @@ function cost (gt, pred) {
 var numbers = 'test/toto/'.split('/')
 var prenoms = 'test/toto'.split('/')
 var noms = 'test/toto'.split('/')
+
 function bestGuess (group, suggestions) {
   function clean (a) { return [].filter.call(a, c => c !== '_').join('') }
-  var pred = clean(group.rows.map(r => r[14]).join(''))
+  var pred = clean(group.rows.map(r => r[12]).join(''))
   function dist (sug) {
+    if (sug === undefined || sug === null) return 999999
     let res = 0
     let n = pred.length
     if (pred.length !== sug.length) {
-      res += 3
+      res += 1.2345
       let nmin = Math.min(n, sug.length)
-      res += 2 * (n - nmin)
+      res += 1.246 * (n - nmin)
       n = nmin
     }
     if (n === 0) {
@@ -62,7 +76,7 @@ function bestGuess (group, suggestions) {
   if (suggest === undefined) suggest = suggestions.DEFAULT
   let dists = suggest.map(dist)
   let imax = argmin(dists)
-  return suggest[imax]
+  return [suggest[imax], imax, dists]
 }
 
 export default _all()
