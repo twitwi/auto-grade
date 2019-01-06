@@ -19,6 +19,13 @@ from flask_app import socketio
 def on_xlsx_read_rows(data):
     cfg = read_config(local_MC + data['pro'])
     xlfile = local_MC + data['pro'] + '/parasite.xlsx'
+
+    write = None
+    should_save = False
+    if 'write' in data:
+        write = [[None, None, None, None, None]] + data['write'] # add one pseudo line to keep the row id of xls
+        should_save = True
+
     wb = openpyxl.load_workbook(filename = xlfile)
     ws = wb[wb.sheetnames[0]]
     def digest_header_into_index_access():
@@ -31,7 +38,17 @@ def on_xlsx_read_rows(data):
     res = []
     for i, row in islice(enumerate(ws.rows), 1, None):
         cells = lmap(of(row), row_indices)
+        if write is not None:
+            if write[i][1:3] == lmap(attr_value(), cells[1:3]):
+                print(write)
+                for j in range(3, min(len(cells), len(write))):
+                    cells[j].value = write[i][j]
+            else:
+                emit('alert', 'Not matching ['+str(i)+']'+str(lmap(attr_value(), cells))+' VS '+str(write[i]))
         res.append(lmap(attr_value(), cells))
+
+    if should_save:
+        wb.save(xlfile)
     emit('got-xlsx-structured-rows', res)
 
 @socketio.on('yaml-config')

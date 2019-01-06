@@ -5,7 +5,8 @@
     <h1>{{ message }}</h1>
     <input v-model="projectDir"/><br/>
     <button @click="loadXlsx() ; loadConfig()">load parasite.xlsx</button><br/>
-    <button @click="iterateGuess()">re...</button><br/>
+    <button @click="iterateGuess()">do guess</button><br/>
+    <button @click="saveXlsx()">...save</button><br/>
 
     Unguessed :
     <span v-for="(log,u) in unguessed"
@@ -66,16 +67,19 @@ export default {
     return {
       projectDir: config.defaultProjectDir,
       svPath: config.pyConnection + '/',
-      xlsrows: [],
-      boxes: {},
+      xlsrows: [], //  ind -> row
+      boxes: {}, //      u -> groups
       procfg: {},
-      guess: {},
-      unguessed: {},
-      currentUnguessed: 0,
+      guess: {}, //    ind -> u
+      unguessed: {}, //  u -> logs
+      currentUnguessed: 0, // u
       currentFocusImage: ''
     }
   },
   sockets: {
+    'alert': function (data) {
+      alert(data)
+    },
     'got-xlsx-structured-rows': function (data) {
       // this.logs = data.map(l => ({ d: JSON.parse(l), selected: false }))
       this.xlsrows = data
@@ -99,7 +103,13 @@ export default {
           ]
         }
       })
-      this.fillGuesses()
+      this.guess = {}
+      for (let i in this.xlsrows) {
+        if (this.xlsrows[i][4] !== null) {
+          this.guess[i] = ''+this.xlsrows[i][4] // we use string as "k in this.boxes" seems to be string
+        }
+      }
+      // this.iterateGuess()
     }
   },
   computed: {
@@ -150,6 +160,14 @@ export default {
     loadXlsx () {
       this.xlsrows = []
       this.$socket.emit('xlsx-structured-rows', { pro: this.projectDir })
+    },
+    saveXlsx () {
+      let annotatedRows = this.xlsrows
+      // this.xlsrows = []
+      for (let ind in this.guess) {
+        annotatedRows[ind][4] = parseInt(this.guess[ind])
+      }
+      this.$socket.emit('xlsx-structured-rows', { pro: this.projectDir, write: annotatedRows })
     },
     loadConfig () {
       this.procfg = {}
