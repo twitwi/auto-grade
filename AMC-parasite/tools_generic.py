@@ -18,6 +18,8 @@ def read_config(pro, filename='parasite.yaml', print=noop):
     def withdef(path, v, o=cfg, prev=''):
         if '/' in path:
             splt = path.split('/', 1)
+            if splt[0] not in o:
+                o[splt[0]] = {}
             withdef(splt[1], v, o[splt[0]], prev+'→'+splt[0])
         else:
             if path not in o:
