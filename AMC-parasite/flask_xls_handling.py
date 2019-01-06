@@ -32,17 +32,17 @@ def on_xlsx_read_rows(data):
         headers = lmap(attr_value(), ws['1'])
         headers_lookup = { v: i for i,v in enumerate(headers) }
         cfg_mapped = lmap(lambda h: cfg['headers'][h], row_elements)
-        return lmap(of(headers_lookup), cfg_mapped)
+        return lmap(ofdict(headers_lookup), cfg_mapped)
 
     row_indices = digest_header_into_index_access()
     res = []
     for i, row in islice(enumerate(ws.rows), 1, None):
-        cells = lmap(of(row), row_indices)
+        cells = lmap(oflist(row), row_indices)
         if write is not None:
             if write[i][1:3] == lmap(attr_value(), cells[1:3]):
-                print(write)
                 for j in range(3, min(len(cells), len(write))):
-                    cells[j].value = write[i][j]
+                    if cells[j] is not None:
+                        cells[j].value = write[i][j]
             else:
                 emit('alert', 'Not matching ['+str(i)+']'+str(lmap(attr_value(), cells))+' VS '+str(write[i]))
         res.append(lmap(attr_value(), cells))

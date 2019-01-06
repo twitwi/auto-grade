@@ -106,10 +106,11 @@ export default {
       this.guess = {}
       for (let i in this.xlsrows) {
         if (this.xlsrows[i][4] !== null) {
-          this.guess[i] = ''+this.xlsrows[i][4] // we use string as "k in this.boxes" seems to be string
+          this.guess[i] = '' + this.xlsrows[i][4] // we use string as "k in this.boxes" seems to be string
         }
       }
       // this.iterateGuess()
+      // this.fillGuesses()
     }
   },
   computed: {
@@ -126,7 +127,7 @@ export default {
         firstname: this.xlsrows.map(o => upper(o[1])).map(filt),
         lastname: this.xlsrows.map(o => upper(o[2])).map(filt)
       }
-      // console.log(suggestions)
+      console.log(suggestions)
       for (let k in this.boxes) {
         if (skip.indexOf(k) !== -1) continue
         let guessFirstname = S.bestGuess(this.boxes[k].groups[0], suggestions)

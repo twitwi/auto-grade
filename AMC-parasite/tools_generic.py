@@ -1,14 +1,16 @@
 
 import yaml
 
-local_MC = './,,test/'
+# local_MC = './,,test/'
+local_MC = '/home/twilight/MC-Projects/'
 row_elements = 'username firstname lastname group examid'.split(' ')
 
 def noop(*args, **kwargs): pass
 def lmap(*args, **kwargs): return list(map(*args, **kwargs))
 def at(k):                 return lambda o: o[k]
-def attr_value():          return lambda o: o.value
-def of(o):                 return lambda k: o[k]
+def attr_value():          return lambda o: None if o is None else o.value
+def ofdict(o):             return lambda k: None if k not in o else o[k]
+def oflist(o):             return lambda k: None if k is None else o[k]
 
 def read_config(pro, filename='parasite.yaml', print=noop):
     with open(pro + '/' + filename) as f:
