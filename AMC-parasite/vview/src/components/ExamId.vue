@@ -5,6 +5,7 @@
     <h1>{{ message }}</h1>
     <input v-model="projectDir"/><br/>
     <button @click="loadXlsx() ; loadConfig()">load parasite.xlsx</button><br/>
+    <button @click="iterateGuess()">re...</button><br/>
 
     Unguessed :
     <span v-for="(log,u) in unguessed"
@@ -98,33 +99,45 @@ export default {
           ]
         }
       })
-      let upper = v => v === null ? null : v.toUpperCase()
-      let suggestions = {
-        firstname: this.xlsrows.map(o => upper(o[1])),
-        lastname: this.xlsrows.map(o => upper(o[2]))
-      }
-      // console.log(suggestions)
-      for (let k in this.boxes) {
-        let guessFirstname = S.bestGuess(this.boxes[k].groups[0], suggestions)
-        let guessLastname = S.bestGuess(this.boxes[k].groups[1], suggestions)
-        let ok = false
-        if (guessFirstname[1] === guessLastname[1] || suggestions.firstname[guessLastname[1]] === guessFirstname[0]) {
-          if (this.guess[guessLastname[1]] === undefined) {
-            this.guess[guessLastname[1]] = k
-            ok = true
-          }
-        }
-        if (!ok) {
-          console.log(k, ':', guessFirstname[1] === guessLastname[1], guessFirstname[1], guessLastname[1], guessFirstname[0], guessLastname[0])
-          this.unguessed[k] = { k, log: [k, ':', guessFirstname[1] === guessLastname[1], guessFirstname[1], guessLastname[1], guessFirstname[0], guessLastname[0]] }
-        }
-      }
+      this.fillGuesses()
     }
   },
   computed: {
     ...mapState(['connected', 'error', 'message'])
   },
   methods: {
+    iterateGuess () {
+      this.unguessed = {}
+      this.fillGuesses([...Object.values(this.guess)], (o, i) => this.guess[i] !== undefined ? null : o)
+    },
+    fillGuesses (skip = [], filt = o => o) {
+      let upper = v => v === null ? null : v.toUpperCase()
+      let suggestions = {
+        firstname: this.xlsrows.map(o => upper(o[1])).map(filt),
+        lastname: this.xlsrows.map(o => upper(o[2])).map(filt)
+      }
+      // console.log(suggestions)
+      for (let k in this.boxes) {
+        if (skip.indexOf(k) !== -1) continue
+        let guessFirstname = S.bestGuess(this.boxes[k].groups[0], suggestions)
+        let guessLastname = S.bestGuess(this.boxes[k].groups[1], suggestions)
+        let ok = false
+        if (guessFirstname !== null && guessLastname !== null) {
+          if (guessFirstname[1] === guessLastname[1] || suggestions.firstname[guessLastname[1]] === guessFirstname[0]) {
+            if (this.guess[guessLastname[1]] === undefined || this.guess[guessLastname[1]] === k) {
+              this.guess[guessLastname[1]] = k
+              ok = true
+            }
+          }
+        }
+        if (!ok) {
+          if (guessFirstname === null) guessFirstname = [-1, -2, -3]
+          if (guessLastname === null) guessLastname = [-1, -2, -3]
+          console.log(k, ':', guessFirstname[1] === guessLastname[1], guessFirstname[1], guessLastname[1], guessFirstname[0], guessLastname[0])
+          this.unguessed[k] = { k, log: [k, ':', guessFirstname[1] === guessLastname[1], guessFirstname[1], guessLastname[1], guessFirstname[0], guessLastname[0]] }
+        }
+      }
+    },
     affectCurrentUnguessedToRow (i) {
       if (this.unguessed[this.currentUnguessed] === undefined) return
       this.$delete(this.unguessed, this.currentUnguessed)

@@ -51,8 +51,12 @@ var prenoms = 'test/toto'.split('/')
 var noms = 'test/toto'.split('/')
 
 function bestGuess (group, suggestions) {
-  function clean (a) { return [].filter.call(a, c => c !== '_').join('') }
+  // function clean (a) { return [].filter.call(a, c => c !== '_' && c !== ' ').join('') }
+  function clean (a) { return [].map.call(a, c => c !== '_' ? c : ' ').join('').trim() }
   var pred = clean(group.rows.map(r => r[12]).join(''))
+  if (pred === '') {
+    return null
+  }
   function dist (sug) {
     if (sug === undefined || sug === null) return 999999
     let res = 0
