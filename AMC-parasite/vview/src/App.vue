@@ -5,6 +5,7 @@
       <router-link to="/miniset-builder" class="pseudo button icon-picture">Miniset</router-link>
       <router-link to="/mass-fix" class="pseudo button icon-picture">MassFix</router-link>
       <router-link to="/exam-id" class="pseudo button icon-picture">ExamId</router-link>
+      <router-link to="/ocr-questions" class="pseudo button icon-picture">OCRQuestions</router-link>
       <span>///</span>
       <router-link to="/">Home</router-link>
     </div>

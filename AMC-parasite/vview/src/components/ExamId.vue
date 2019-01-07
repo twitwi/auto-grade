@@ -68,7 +68,7 @@ export default {
       projectDir: config.defaultProjectDir,
       svPath: config.pyConnection + '/',
       xlsrows: [], //  ind -> row
-      boxes: {}, //      u -> groups
+      boxes: {}, //      u -> groups (a group has .rows[r][col])
       procfg: {},
       guess: {}, //    ind -> u
       unguessed: {}, //  u -> logs
