@@ -30,13 +30,16 @@ def on_manual_load_images(data):
 	# 0id_answer 1student
     # 2`zoneid`	INTEGER, 3`student`	INTEGER, 4`page`	INTEGER, 5`copy`	INTEGER, 6`type`	INTEGER, 7`id_a`	INTEGER, 8`id_b`	INTEGER,
     # 9`total`	INTEGER DEFAULT -1, 10`black`	INTEGER DEFAULT -1, 11`manual`	REAL DEFAULT -1, 12`image`	TEXT, 13`imagedata`	BLOB,
+    prefix = 'im'
+    if 'prefix' in data:
+        prefix = data['prefix']
     if predict:
         print("Loading pytorch model")
         net = torch.load('resources/model-emnist4big.torch').to(torch.device('cpu'))
     print('...DONE')
     sub = 'pyannotate'
     directory = './generated/'+sub
-    if os.path.exists(directory):
+    if os.path.exists(directory) and not 'keepImages' in data:
         shutil.rmtree(directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -45,7 +48,7 @@ def on_manual_load_images(data):
         pairs = list(enumerate(v))
         ims = []
         for i,r in pairs:
-            n = "/im-" + str(j) + ".png"
+            n = "/" + prefix + "-" + str(j) + ".png"
             j += 1
             #print('IMAGE', n)
             #print(info[k][:-2])
