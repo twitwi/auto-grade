@@ -1,35 +1,57 @@
 <template>
   <div class="ocr-questions">
+    <div> <!-- to protect from vue that rebuilds the siblings on change and make a focus loss... as in https://github.com/vuejs/vue/issues/6929 -->
     <h1>{{ connected }}</h1>
     <h1>{{ error }}</h1>
     <h1>{{ message }}</h1>
     <input v-model="projectDir"/><br/>
-    <button @click="loadXlsx() ; loadConfig()">load infos</button><br/>
-    <button @click="doGuess()">do guess</button><br/>
-    <button @click="saveXlsx()">...save</button><br/>
+    <button @click="loadBoth()">force load</button>
+    <button @click="doGuess()">force do guess</button>
+    <button @click="saveXlsx()">...save</button>
+    <br/>
 
     <button @click="currentField --">«</button>
     <input v-model.number="currentField"/>
     <button @click="currentField ++">»</button>
-    <br/>
+    //
+    <button @click="currentUser --">«</button>
+    <input v-model.number="currentUser"/>
+    <button @click="currentUser ++">»</button>
+    <hr/>
     <span v-if="procfg.fields !== undefined">{{ procfg.fields.more[currentField] }}</span>
+    <br/>
+    {{ orderedUsers }}
+    </div> <!-- see opening tag -->
 
     <hr/>
-    List
-    <hr/>
 
-    <div v-if="currentBoxes !== undefined">
-      <div v-for="(group, u) in currentBoxes" :key="group.blob + '--' + u">
-        {{ u }}
-        <span v-for="r in group.rows" :key="r[2]" class="scans">
-          <img :src="svPath + r[13]" />
-          <span class="annotation">{{r[12]}}</span>
-        </span>
-        ⇒
-        <span v-if="guess[currentField][u]">{{ guess[currentField][u][0] }}</span>
-      </div>
+    »»»» <button @keydown="keydown($event)" :autofocus="'autofocus'">FOCUS</button> ««««
+
+    <div class="for-table" v-if="currentBoxes !== undefined">
+      <table class="sorting-table" ref="table">
+        <thead>
+          <tr>
+            <th v-for="e in procfg.fields.more[currentField].propositions" :key="'th'+e"
+            :style="'width:'+(100/procfg.fields.more[currentField].propositions.length)+'%'"
+            :class="{ ok: procfg.fields.more[currentField].ok === e }"
+            >{{ e }}</th>
+          </tr>
+        </thead>
+        <tr v-for="(group, u) in currentBoxes" :key="group.blob + '--' + u" :class="{current: orderedUsers[currentUser] === u}">
+          <td v-for="e in procfg.fields.more[currentField].propositions" :key="'td'+e">
+            <span v-if="guess[currentField][u][0] === e">
+              <span v-for="r in group.rows" :key="r[2]" class="scans">
+                <img :src="svPath + r[13]" />
+                <span class="annotation">{{r[12]}}</span>
+              </span>
+            </span>
+          </td>
+        </tr>
+      </table>
     </div>
 
+    <hr/>
+    (maybe click on focus) (press 'Esc' to load and then use arrows to correct OCR guesses, use Tab and Shift-Tab to switch OCR fields)
     <br/>
     <img :src="currentFocusImage" class="focus" @click.left="currentFocusImage = ''"/>
   </div>
@@ -47,9 +69,10 @@ export default {
     return {
       projectDir: config.defaultProjectDir,
       svPath: config.pyConnection + '/',
-      procfg: {}, //   with procfg.fields.more: f -> [q, from=0, to=undefined]
+      procfg: {}, //   with procfg.fields.more: f ---.boxes---> [q, from=0, to=undefined]
       xlsrows: [], //   ind -> row
       currentField: 0, // f
+      currentUser: 0, // indU (in this.orderedUsers)
       qBoxes: {}, //      q -> u -> boxes ([r][col])
       guess: [], //       f -> u -> guess
       suggestions: {},
@@ -97,6 +120,7 @@ export default {
       })
       this.qBoxes = Object.assign({}, this.qBoxes, { [q]: o })
       // this.$set(this.qBoxes, q, o) // not working?
+      this.maybeDoGuessForCurrent()
     }
   },
   computed: {
@@ -118,16 +142,70 @@ export default {
         }
       }
       return undefined
+    },
+    orderedUsers () {
+      if (this.qBoxes[this.currentQ] === undefined) return undefined
+      return Object.keys(this.qBoxes[this.currentQ])
     }
   },
   watch: {
     currentField (v, oldV) {
+      this.maybeDoGuessForCurrent()
       this.maybeLoadBoxForCurrentField(v)
+    },
+    currentUser (v, oldv) {
+      this.$nextTick(() => {
+        this.$refs.table.querySelectorAll('.current').forEach(e => { e.scrollIntoView({ block: 'center' }) })
+      })
     }
   },
   methods: {
     focus (imPath) {
       this.currentFocusImage = config.pyConnection + '/MC/' + this.projectDir + '/' + imPath
+    },
+    keydown (ev) {
+      var k = ev.key
+      var prevDef = true
+      if (k === 'Escape') {
+        this.loadBoth()
+      } else
+      if (k === 'Backspace') {
+        this.currentUser = 0
+      } else
+      if (k === 'Enter') {
+        // this.save()
+      } else
+      if (k === 'ArrowUp') {
+        this.currentUser--
+      } else
+      if (k === 'ArrowDown') {
+        this.currentUser++
+      } else
+      if (k === 'ArrowLeft') {
+        let f = this.currentField
+        let u = this.orderedUsers[this.currentUser]
+        let conf = this.procfg.fields.more[f]
+        let sug = this.suggestions[conf.name]
+        let got = sug[sug.indexOf(this.guess[f][u][0]) - 1]
+        if (got !== undefined) this.guess[f][u] = [got]
+      } else
+      if (k === 'ArrowRight') {
+        let f = this.currentField
+        let u = this.orderedUsers[this.currentUser]
+        let sug = this.procfg.fields.more[f].propositions
+        console.log(f, u, sug, this.guess[f][u], sug.indexOf(this.guess[f][u]))
+        let got = sug[sug.indexOf(this.guess[f][u][0]) + 1]
+        if (got !== undefined) this.guess[f][u] = [got]
+      } else
+      if (k === 'Tab') {
+        this.currentField += ev.shiftKey ? -1 : 1
+      } else {
+        prevDef = false
+        console.log(ev)
+      }
+      if (prevDef) {
+        ev.preventDefault()
+      }
     },
     formatBoxesForField (boxes, f) {
       let conf = this.procfg.fields.more[f]
@@ -144,6 +222,11 @@ export default {
         }
       }
       return o
+    },
+    maybeDoGuessForCurrent () {
+      if (this.orderedUsers === undefined) return
+      if (this.guess[this.currentField][this.orderedUsers[0]] !== undefined) return
+      this.doGuess()
     },
     doGuess () {
       let f = this.currentField
@@ -162,6 +245,10 @@ export default {
       if (desc !== undefined) {
         this.loadBoxes(desc[0])
       }
+    },
+    loadBoth () {
+      this.loadXlsx()
+      this.loadConfig()
     },
     loadXlsx () {
       this.xlsrows = []
@@ -182,7 +269,7 @@ export default {
     loadBoxes (q) {
       if (this.qBoxes[q] !== undefined) return
       this.qBoxes[q] = {}
-      this.$socket.emit('manual-load-images', { pro: this.projectDir, '_id': 'ocrquestion', prefix: 'ocr' + q, keepImages: true, predict: true, onlyq: q, TMP: true })
+      this.$socket.emit('manual-load-images', { pro: this.projectDir, '_id': 'ocrquestion', prefix: 'ocr' + q, keepImages: true, predict: true, onlyq: q, noTMP: true })
     }
   }
 }
@@ -222,4 +309,31 @@ a {
   border-color: red;
 }
 #toggle:checked ~ .offOnToggle { display: none; }
+
+div.for-table {
+  min-width: 1200px;
+  height: 400px;
+  margin: 0 auto;
+  border: 1px solid grey;
+  resize: both;
+  overflow: auto;
+}
+div.for-table table {
+  margin: 0 auto;
+}
+div.for-table table th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  background: white;
+}
+tr.current {
+  background: lightgrey;
+}
+th.ok {
+  border: 1px solid darkgreen;
+  background: darkgrey !important;
+  color: black;
+  font-weight: bold;
+}
 </style>
