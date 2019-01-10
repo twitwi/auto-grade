@@ -17,6 +17,7 @@
     <button @click="currentUser --">«</button>
     <input v-model.number="currentUser"/>
     <button @click="currentUser ++">»</button>
+    (examid: <span v-if="orderedUsers">{{ orderedUsers[currentUser] }}</span>)
     <hr/>
     <span v-if="procfg.fields !== undefined">{{ procfg.fields.more[currentField] }}</span>
     <br/>
@@ -86,6 +87,12 @@ export default {
     'got-xlsx-structured-rows': function (data) {
       // this.logs = data.map(l => ({ d: JSON.parse(l), selected: false }))
       this.xlsrows = data
+    },
+    'on-xlsx-saved-save-xlsx-grade': function (data) {
+      this.saveXlsx(true)
+    },
+    'xlsx-saved': function (data) {
+      alert('saved to xlsx as a new sheet')
     },
     'got-yaml-config': function (data) {
       let more = data.fields.more
@@ -200,6 +207,9 @@ export default {
       if (k === 'Tab') {
         this.currentField += ev.shiftKey ? -1 : 1
       } else {
+      if (k === 'x') {
+        this.setCurrentToNoGuess()
+      } else
         prevDef = false
         console.log(ev)
       }
@@ -235,9 +245,14 @@ export default {
       let o = {}
       for (let u in boxes) {
         o[u] = S.bestGuess(boxes[u], this.suggestions)
+        if (o[u] === null) o[u] = ['']
       }
       this.$set(this.guess, f, o)
-      // TODO UI and features
+    },
+    setCurrentToNoGuess () {
+      let f = this.currentField
+      let u = this.orderedUsers[this.currentUser]
+      this.$set(this.guess, f, Object.assign({}, this.guess[f], { [u]: [' '] }))
     },
     maybeLoadBoxForCurrentField (v) {
       if (this.procfg.fields === undefined) return
@@ -254,13 +269,26 @@ export default {
       this.xlsrows = []
       this.$socket.emit('xlsx-structured-rows', { pro: this.projectDir })
     },
-    saveXlsx () {
-      let annotatedRows = this.xlsrows
-      // this.xlsrows = []
-      for (let ind in this.guess) {
-        annotatedRows[ind][4] = parseInt(this.guess[ind])
+    saveXlsx (grade=false) {
+      let content = this.guess.map(m => {
+        let map = {}
+        Object.keys(m).forEach(k => {
+          map[k] = m[k][0]
+          if (grade) {
+            map[k] = map[k] === this.procfg.fields.more[this.currentField].ok ? 1 : 0
+          }
+        })
+        return map
+      })
+
+      let newSheet = {
+        pro: this.projectDir,
+        title: grade ? 'OCR-Grade' : 'OCR',
+        head: this.procfg.fields.more.map(f => f.name),
+        content,
+        callback: grade ? 'xlsx-saved' : 'on-xlsx-saved-save-xlsx-grade'
       }
-      this.$socket.emit('xlsx-structured-rows', { pro: this.projectDir, write: annotatedRows })
+      this.$socket.emit('xlsx-add-sheet', newSheet)
     },
     loadConfig () {
       this.procfg = {}

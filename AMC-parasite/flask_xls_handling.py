@@ -22,7 +22,7 @@ def on_xlsx_read_rows(data):
 
     write = None
     should_save = False
-    if 'write' in data:
+    if 'write' in data: # supposing first and last names match (so already there)
         write = [[None, None, None, None, None]] + data['write'] # add one pseudo line to keep the row id of xls
         should_save = True
 
@@ -49,7 +49,39 @@ def on_xlsx_read_rows(data):
 
     if should_save:
         wb.save(xlfile)
-    emit('got-xlsx-structured-rows', res)
+    emit('got-xlsx-structured-rows' if 'callback' not in data else data['callback'], res)
+
+@socketio.on('xlsx-add-sheet')
+def on_xlsx_read_rows(data):
+    from collections import Set
+    cfg = read_config(local_MC + data['pro'])
+    xlfile = local_MC + data['pro'] + '/parasite.xlsx'
+
+    title = data['title']
+    head = data['head'] # head[f]
+    content = data['content'] # content[f][u]
+
+    wb = openpyxl.load_workbook(filename = xlfile)
+    ws = wb.create_sheet(title=title)
+    ws.cell(row=1, column=1, value='examid')
+    for f, h in enumerate(head):
+        ws.cell(row=1, column=2+f, value=h)
+
+    users = sorted(list(set().union(*[[int(k) for k in map.keys()] for map in content])))
+    print(users)
+
+    print(content)
+
+    for i, u_int in enumerate(users):
+        u = str(u_int)
+        ws.cell(row=2+i, column=1, value=u)
+        for f, h in enumerate(head):
+            if f < len(content) and u in content[f]:
+                print(i,u,f,h,content[f][u])
+                ws.cell(row=2+i, column=2+f, value=content[f][u])
+
+    wb.save(xlfile)
+    emit('xlsx-added-sheet' if 'callback' not in data else data['callback'])
 
 @socketio.on('yaml-config')
 def on_get_yaml_config(data):
