@@ -206,10 +206,10 @@ export default {
       } else
       if (k === 'Tab') {
         this.currentField += ev.shiftKey ? -1 : 1
-      } else {
+      } else
       if (k === 'x') {
         this.setCurrentToNoGuess()
-      } else
+      } else {
         prevDef = false
         console.log(ev)
       }
@@ -269,7 +269,7 @@ export default {
       this.xlsrows = []
       this.$socket.emit('xlsx-structured-rows', { pro: this.projectDir })
     },
-    saveXlsx (grade=false) {
+    saveXlsx (grade = false) {
       let content = this.guess.map(m => {
         let map = {}
         Object.keys(m).forEach(k => {
