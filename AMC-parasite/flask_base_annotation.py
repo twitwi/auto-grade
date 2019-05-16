@@ -25,7 +25,7 @@ def on_manual_load_images(data):
     if 'only' in data:
         more += ' AND student=' + str(data['only'])
     if 'TMP' in data:
-        more += ' AND student > 10 AND student < 20'
+        more += ' AND student > 5 AND student < 15'
     info = preload_all_queries(make_connection(local_MC + data['pro'] + '/data/capture.sqlite'), more=more, improcess=assuch)
 	# 0id_answer 1student
     # 2`zoneid`	INTEGER, 3`student`	INTEGER, 4`page`	INTEGER, 5`copy`	INTEGER, 6`type`	INTEGER, 7`id_a`	INTEGER, 8`id_b`	INTEGER,

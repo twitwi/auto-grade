@@ -103,6 +103,9 @@ export default {
         if (more[k].boxes[0] === undefined) { // used a shortcut by just giving a q number
           more[k].boxes = [more[k].boxes]
         }
+        if (more[k].ok === undefined && more[k].propositions !== undefined) { // use first proposition as ok, by default
+          more[k].ok = more[k].propositions[0]
+        }
         this.guess.push({})
       }
       this.procfg = data
@@ -245,7 +248,13 @@ export default {
       let o = {}
       for (let u in boxes) {
         o[u] = S.bestGuess(boxes[u], this.suggestions)
-        if (o[u] === null) o[u] = ['']
+        if (o[u] === null) {
+          let props = this.procfg.fields.more[f].propositions
+          o[u] = [props[props.lenghth-1]]
+          for (let p of this.procfg.fields.more[f].propositions) {
+            if (p.replace(/±.*/, '') == '') o[u] = [p]
+          }
+        }
       }
       this.$set(this.guess, f, o)
     },
@@ -270,12 +279,17 @@ export default {
       this.$socket.emit('xlsx-structured-rows', { pro: this.projectDir })
     },
     saveXlsx (grade = false) {
-      let content = this.guess.map(m => {
+      let content = this.guess.map((m, f) => {
         let map = {}
         Object.keys(m).forEach(k => {
           map[k] = m[k][0]
           if (grade) {
-            map[k] = map[k] === this.procfg.fields.more[this.currentField].ok ? 1 : 0
+            let suff = map[k].replace(/.*±/, '')
+            if (suff !== map[k]) {
+              map[k] = parseFloat(suff)
+            } else {
+              map[k] = map[k] === this.procfg.fields.more[f].ok ? 1 : 0
+            }
           }
         })
         return map
@@ -283,7 +297,7 @@ export default {
 
       let newSheet = {
         pro: this.projectDir,
-        title: grade ? 'OCR-Grade' : 'OCR',
+        title: grade ? 'TESTOCRGrade-%d' : 'TESTOCR-%d',
         head: this.procfg.fields.more.map(f => f.name),
         content,
         callback: grade ? 'xlsx-saved' : 'on-xlsx-saved-save-xlsx-grade'

@@ -1,0 +1,31 @@
+fields:
+  lastname:  [1, 0,  24]
+  firstname: [1, 24, 47]
+  more:
+    - { name: "tab1a", boxes: [2, 0, 3], with: "tabs", ok: "A2" }
+    - { name: "tab1b", boxes: [2, 3, 6], with: "tabs", ok: "B2" }
+    - { name: "tab1c", boxes: [2, 6, 9], with: "tabs", ok: "A2" }
+    - { name: "tab1d", boxes: [2, 9, 12], with: "tabs", ok: "B2" }
+    - { name: "tab1e", boxes: [2, 12, 15], with: "tabs", ok: "A3" }
+    - { name: "tab1f", boxes: [2, 15, 18], with: "tabs", ok: "B3" }
+    - { name: "tab1g", boxes: [2, 18, 21], with: "tabs", ok: "A3" }
+    - { name: "tab1h", boxes: [2, 21], with: "tabs", ok: "B3" }
+    - { name: "tab2a", boxes: [3, 0, 3], with: "tabs", ok: "A2" }
+    - { name: "tab2b", boxes: [3, 3, 6], with: "tabs", ok: "B2" }
+    - { name: "tab2c", boxes: [3, 6, 9], with: "tabs", ok: "O2" }
+    - { name: "tab2d", boxes: [3, 9, 12], with: "tabs", ok: "O2" }
+    - { name: "tab2e", boxes: [3, 12, 15], with: "tabs", ok: "A3" }
+    - { name: "tab2f", boxes: [3, 15, 18], with: "tabs", ok: "B3" }
+    - { name: "tab2g", boxes: [3, 18, 21], with: "tabs", ok: "O3" }
+    - { name: "tab2h", boxes: [3, 21], with: "tabs", ok: "O3" }
+    - { name: "i3-6", boxes: 6, with: "i3", ok: "OK" }
+    - { name: "i3-7", boxes: 7, with: "i3", ok: "C3" }
+    - { name: "i3-8", boxes: 8, with: "i3", ok: "C2" }
+    - { name: "i3-9", boxes: 9, with: "i3", ok: "OK" }
+    - { name: "i3-10", boxes: 10, with: "i3", ok: "C2" }
+    - { name: "i3-11", boxes: 11, with: "i3", ok: "E2" }
+  with:
+    tabs:
+      propositions: ["ERR", "A1", "B1", "O2", "A2", "B2", "O3", "A3", "B3"]
+    i3:
+      propositions: ["OK", "C1", "C2", "C3", "E1", "E2", "E3"]

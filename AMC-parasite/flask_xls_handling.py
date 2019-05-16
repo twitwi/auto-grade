@@ -57,11 +57,25 @@ def on_xlsx_read_rows(data):
     cfg = read_config(local_MC + data['pro'])
     xlfile = local_MC + data['pro'] + '/parasite.xlsx'
 
-    title = data['title']
     head = data['head'] # head[f]
     content = data['content'] # content[f][u]
 
     wb = openpyxl.load_workbook(filename = xlfile)
+
+    try:
+        stitle = 0
+        title = data['title'] % (stitle,)
+        format_title = True
+    except:
+        title = data['title']
+        format_title = False
+
+    if format_title:
+        for ititle in range(stitle, 1000): # force stop
+            title = data['title'] % (ititle,)
+            if title not in wb.sheetnames:
+                break
+
     ws = wb.create_sheet(title=title)
     ws.cell(row=1, column=1, value='examid')
     for f, h in enumerate(head):
