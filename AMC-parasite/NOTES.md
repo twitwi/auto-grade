@@ -28,6 +28,7 @@ It allows to browse the answers of each student, use OCR (a bad one, together wi
 To run, in two processes:
 
 ~~~
+pip3 install -U setuptools
 pip3 install flask flask_socketio openpyxl scipy Pillow pyaml
 pip3 install torch torchvision
 python3 flask-ws.py
