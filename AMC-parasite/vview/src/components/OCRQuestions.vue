@@ -98,6 +98,7 @@ export default {
       let more = data.fields.more
       for (let k in more) {
         if (more[k].with !== undefined) {
+          // TODO: consider deep assign as currently (below, with splice) we modify a shared object (that can be a feature though)
           Object.assign(more[k], data.fields.with[more[k].with])
         }
         if (more[k].boxes[0] === undefined) { // used a shortcut by just giving a q number
@@ -105,6 +106,9 @@ export default {
         }
         if (more[k].ok === undefined && more[k].propositions !== undefined) { // use first proposition as ok, by default
           more[k].ok = more[k].propositions[0]
+        }
+        if (more[k].propositions.indexOf(more[k].ok) === -1) {
+          more[k].propositions.splice(0, 0, more[k].ok)
         }
         this.guess.push({})
       }
@@ -250,9 +254,9 @@ export default {
         o[u] = S.bestGuess(boxes[u], this.suggestions)
         if (o[u] === null) {
           let props = this.procfg.fields.more[f].propositions
-          o[u] = [props[props.lenghth-1]]
+          o[u] = [props[props.lenghth - 1]]
           for (let p of this.procfg.fields.more[f].propositions) {
-            if (p.replace(/±.*/, '') == '') o[u] = [p]
+            if (p.replace(/±.*/, '') === '') o[u] = [p]
           }
         }
       }
