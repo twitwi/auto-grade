@@ -1,5 +1,5 @@
 
-from scipy.misc import imread
+from imageio import imread
 import io
 import sqlite3
 
@@ -11,7 +11,8 @@ def asbase64(im):
 def assuch(im): return im
 def preload_all_queries(conn, more='', improcess=asbase64):
     c = conn.cursor()
-    c.execute('''SELECT id_a,student,* FROM capture_zone WHERE type=4 '''+more+''' ORDER BY student,id_a,id_b ASC''')
+    c.execute('''SELECT id_a,student,* FROM capture_zone WHERE type=4 AND total > 0.55 * (SELECT MAX(total) FROM capture_zone) '''+more+''' ORDER BY student,id_a,id_b ASC''')
+    # criteria on total is a tentative to remove non-OCR checkboxes
     res = {}
     for r in c.fetchall():
         k = r[1]

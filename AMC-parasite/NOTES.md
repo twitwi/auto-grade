@@ -92,7 +92,7 @@ Term 2
 
 ~~~
 . VENV/bin/activate
-# pip3 install flask flask_socketio openpyxl scipy Pillow pyaml
+# pip3 install flask flask_socketio openpyxl scipy Pillow pyaml imageio
 # pip3 install torch torchvision
 python3 flask-ws.py
 ~~~
