@@ -19,11 +19,11 @@ for i,f in enumerate(sys.argv[1:]):
         continue
     print(np.min(arr, axis=0), np.max(arr, axis=0))
     plt.scatter(
-            arr[:,0] / np.max(arr[:,0]), # normalize wrt to max
+            arr[:,0] / np.min(arr[:,0]), # normalize wrt to min
         i + arr[:,1] / np.sum(arr[:,1]), # show as a distribution
         marker='.')
     conn.close()
 
-plt.plot([.55, .55], [0, len(sys.argv)]) # draw the selected separation
+plt.plot([1.5]*2, [0, len(sys.argv)]) # draw the selected separation
 plt.show()
 
