@@ -3,7 +3,9 @@
     <h1>{{ connected }}</h1>
     <h1>{{ error }}</h1>
     <h1>{{ message }}</h1>
-    <input v-model="projectDir"/><br/>
+    <input v-model="projectDir"/>
+    <button @click="clickExamId">load exam IDs (names)</button>
+    <br/>or work user by user
     {{ currentUser }}<input type="range" min="1" max="200" v-model="currentUser" @change="click"/>
     <button @click="currentUser -- ; click()">«</button>
     <input v-model.number="currentUser"/>
@@ -151,7 +153,10 @@ export default {
       console.log('CLICK')
       this.$socket.emit('manual-load-images', { pro: this.projectDir, predict: true, _id: 'MassFix', only: this.currentUser })
       console.log('CLICKED')
-    }
+    },
+    async clickExamId () {
+      //this.$socket.emit('manual-load-images', { pro: this.projectDir, predict: true, _id: 'MassFix', only: this.currentUser })
+    },
   }
 }
 </script>
