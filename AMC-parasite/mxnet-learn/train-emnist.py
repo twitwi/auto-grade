@@ -16,6 +16,13 @@ from emnist import extract_test_samples
 
 from mxboard import SummaryWriter
 
+from datetime import datetime
+
+def save_now(net):
+    fname = ',,,,backup-'+datetime.strftime(datetime.now(), '%Y-%m-%d_%H:%M')
+    net.save_parameters(fname)
+    print('saved as', fname)
+
 #from gluoncv.data import transforms as gcv_transforms
 
 
@@ -26,14 +33,21 @@ ctx = mx.cpu()
 # %%
 
 
-our_classes = "=:;.,-_()[]!?*/'⁹"
+our_classes = "=:;.,-_()[]!?*/'+⁹"
 classes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"+our_classes
 
 
 # %%
 
-transform_train = transforms.Compose([
+transform_train_emnist = transforms.Compose([
     transforms.RandomResizedCrop(32, scale=(0.9, 1)),
+    # Transpose the image from height*width*num_channels to num_channels*height*width
+    # and map values from [0, 255] to [0,1]
+    transforms.ToTensor(),
+])
+
+transform_train = transforms.Compose([
+    transforms.RandomResizedCrop(32, scale=(0.95, 1), ratio=(0.95, 1.05)),
     # Transpose the image from height*width*num_channels to num_channels*height*width
     # and map values from [0, 255] to [0,1]
     transforms.ToTensor(),
@@ -51,17 +65,21 @@ transform_test = transforms.Compose([
 emnist_train_data, emnist_train_labels = extract_training_samples('balanced')
 emnist_test_data, emnist_test_labels = extract_test_samples('balanced')
 
-emnist_train_data = nd.array(emnist_train_data[:,:,:,None])
-emnist_test_data = nd.array(emnist_test_data[:,:,:,None])
+emnist_train_data = nd.array(255 - emnist_train_data[:,:,:,None])
+emnist_test_data = nd.array(255 - emnist_test_data[:,:,:,None])
 
 
 # %%
 
-emnist_train_dataset = ArrayDataset(SimpleDataset(emnist_train_data).transform(transform_train), emnist_train_labels)
+emnist_train_dataset = ArrayDataset(SimpleDataset(emnist_train_data).transform(transform_train_emnist), emnist_train_labels)
 emnist_train_loader = DataLoader(emnist_train_dataset, shuffle=True, batch_size=32)
 
 emnist_test_dataset = ArrayDataset(SimpleDataset(emnist_test_data).transform(transform_test), emnist_test_labels)
 emnist_test_loader = DataLoader(emnist_test_dataset, batch_size=32)
+
+with SummaryWriter(logdir='./logs') as sw:
+    sw.add_histogram('emnist_classes', mx.nd.array([c for (f,c) in emnist_train_dataset]), bins=np.arange(-0.5, len(classes)+1))
+    sw.add_histogram('emnist_classes', mx.nd.array([c for (f,c) in emnist_test_dataset]), bins=np.arange(-0.5, len(classes)+1))
 
 # %%
 
@@ -119,53 +137,59 @@ trainer = gluon.Trainer(our_net.collect_params(), 'adam', {'learning_rate': .001
 epo = 0
 
 # %%
-smoothing_constant = .01
-n_epochs = 10
-for e in range(n_epochs):
-    epo += 1
-    with SummaryWriter(logdir='./logs', flush_secs=5) as sw:
-        for i, (data, label) in enumerate(emnist_train_loader):
 
-            if i == 0:
-                sw.add_image('first_minibatch', data, global_step=epo)
-            if i % 300 == 0:
-                print(" - minibatch", i)
-            data = data.as_in_context(ctx)
-            label = label.as_in_context(ctx)
-            with autograd.record():
-                output = our_net(data)
-                loss = softmax_cross_entropy(output, label)
-            loss.backward()
-            sw.add_scalar(tag='cross_entropy', value=loss.mean().asscalar(), global_step=epo)
-            trainer.step(data.shape[0])
+def train_it(net, trainer, train_loader, test_loader, n_epochs=1, n_noise = 0):
+    global epo
+    smoothing_constant = .01
+    for e in range(n_epochs):
+        epo += 1
+        with SummaryWriter(logdir='./logs', flush_secs=5) as sw:
+            for i, (data, label) in enumerate(train_loader):
 
-            ########################################
-            #  Keep a moving average of the losses #
-            ########################################
-            curr_loss = nd.mean(loss).asscalar()
-            moving_loss = (curr_loss if ((i == 0) and (e == 0))
-                        else (1 - smoothing_constant) * moving_loss + (smoothing_constant) * curr_loss)
+                if i == 0:
+                    sw.add_image('first_minibatch', data, global_step=epo)
+                if i % 500 == 0:
+                    print(" - minibatch", i)
+                data = data.copy()
+                # as we have unseen classes, ensure noise is predicted as noise
+                if n_noise > 0:
+                    data[:n_noise, :, :, :] = np.random.uniform(size=(n_noise, 1, 32, 32))
+                    label[:n_noise] = np.random.randint(len(classes), size=(n_noise,))
+                data = data.as_in_context(ctx)
+                label = label.as_in_context(ctx)
+                with autograd.record():
+                    output = net(data)
+                    loss = softmax_cross_entropy(output, label)
+                loss.backward()
+                sw.add_scalar(tag='cross_entropy', value=loss.mean().asscalar(), global_step=epo)
+                trainer.step(data.shape[0])
 
-        test_accuracy = evaluate_accuracy(emnist_test_loader, our_net)
-        train_accuracy = evaluate_accuracy(emnist_train_loader, our_net)
-        sw.add_scalar(tag='train_acc', value=train_accuracy, global_step=epo)
-        sw.add_scalar(tag='test_acc', value=test_accuracy, global_step=epo)
-        print("Epoch %s. Loss: %s, Train_acc %s, Test_acc %s" % (epo, moving_loss, train_accuracy, test_accuracy))
+                ########################################
+                #  Keep a moving average of the losses #
+                ########################################
+                curr_loss = nd.mean(loss).asscalar()
+                moving_loss = (curr_loss if ((i == 0) and (e == 0))
+                            else (1 - smoothing_constant) * moving_loss + (smoothing_constant) * curr_loss)
 
+            test_accuracy = evaluate_accuracy(test_loader, net)
+            train_accuracy = evaluate_accuracy(train_loader, net)
+            sw.add_scalar(tag='train_acc', value=train_accuracy, global_step=epo)
+            sw.add_scalar(tag='test_acc', value=test_accuracy, global_step=epo)
+            print("Epoch %s. Loss: %s, Train_acc %s, Test_acc %s" % (epo, moving_loss, train_accuracy, test_accuracy))
+
+# %%
+train_it(our_net, trainer, emnist_train_loader, emnist_test_loader, n_epochs=1, n_noise=4)
 
 # %%
 
 
 # %%
 
-from datetime import datetime
-fname = ',,,,backup-'+datetime.strftime(datetime.now(), '%Y-%m-%d_%H:%M')
-our_net.save_parameters(fname)
-
+save_now(our_net)
 # %%
 
-our_net.load_parameters(',,,,backup-2019-12-07_00:46')
-print('saved')
+our_net.load_parameters(',,,,backup-2019-12-07_12:37')
+print('loaded')
 
 # %%
 
@@ -176,31 +200,145 @@ import os
 print(os.getcwd())
 
 # %%
+glo = {}
 
-def miniset(path):
-    ifd = ImageFolderDataset(path)
-
-    for ii, fold in enumerate(ifd.synsets):
-        folder = fold.replace(r'class-', '')
+def folder_to_class(fold):
+    ncl = fold.replace(r'class-', '')
+    if ncl == '': ncl = '/'
+    try:
+        icl = classes.index(ncl)
+    except:
         try:
-            i = classes.index(folder)
+            icl = classes.index(ncl.upper())
         except:
-            try:
-                i = classes.index(folder.upper())
-            except:
-                print(folder, "is not a class... replacing by ⁹")
-                folder = '⁹'
-                i = classes.index(folder) # dummy class.....
-        ifd.synsets[ii] = folder
-    
-    return ifd
+            print(ncl, "is not a class... replacing by ⁹")
+            ncl = '⁹'
+            icl = classes.index(ncl) # dummy class.....
+    return icl, ncl
 
-#train_set = miniset('mxnet-learn/2018-12-20-1545320427510')
-#test_set = miniset('mxnet-learn/2018-12-20-1545320427510')
+def miniset(path, train=True, batch_size=32):
+    transf = transform_train if train else transform_test
+    ifd = ImageFolderDataset(path, flag=0)
+
+    # use folder names ("synsets") to map the loader class to our class index (in "classes") 
+    for ii, (f, cl) in enumerate(ifd.items):
+        icl, ncl = folder_to_class(ifd.synsets[cl])
+        ifd.items[ii] = (f, icl)
+
+    #with SummaryWriter(logdir='./logs', flush_secs=5) as sw:
+    #    sw.add_histogram('miniset_classes', mx.nd.array([c for (f,c) in ifd.items]), bins=np.arange(-0.5, len(classes)+1))
+
+    ifd.synsets = list(classes)
+    ifd = ifd.transform_first(transf)
+
+    loader = DataLoader(ifd, shuffle=True, batch_size=batch_size)
+
+    return ifd, loader
+
+# %%
+#mini2 = '2018-12-19-1545245917071'
+#mini3 = '2018-12-20-1545320427510'
+#mini4 = '2018-12-20-1545326369644'
+#mini5 = '2018-12-23-1545524873090'
+#mini6 = '2018-12-23-1545577163244'
+#minisets = [mini2, mini3, mini4, mini5, mini6]
+# they are actually all very correlated as is, no new set since then
+
+mini2018 = '2018-clean-dataset'
+minisets = [mini2018]
+
+# %%
+for mi, mns in enumerate(minisets):
+    print(mns)
+    dataset, loader = miniset('mxnet-learn/'+mns)
+    with SummaryWriter(logdir='./logs') as sw:
+        sw.add_histogram('all_minisets', mx.nd.array([c for (f,c) in dataset]), bins=np.arange(-0.5, len(classes)+1), global_step=mi)
 
 # %%
 
+def make_dataset_viewer(reldir):
+    import urllib.parse
+    dir = 'mxnet-learn/'+reldir
+    class ListDict(dict):
+        def __missing__(self, key):
+            self[key] = []
+            return self[key]
 
+    ifd = ImageFolderDataset(dir, flag=0)
+    class_images = ListDict()
+
+    for ii, (f, cl) in enumerate(ifd.items):
+        icl, ncl = folder_to_class(ifd.synsets[cl])
+        class_images[icl].append(f)
+
+    def relpath(im):
+        return urllib.parse.quote(im[im.index(reldir):])
+    def imgs(l):
+        return '\n'.join((f'<img src="{relpath(im)}"/>' for im in l))
+        
+    body = ''.join((
+        f"""
+        <div>Class {icl} <span>{classes[icl]}</span> ({len(class_images[icl])})</div>
+        {imgs(class_images[icl])}
+        """
+        for icl in sorted(class_images.keys())
+    ))
+
+    with open(dir+'.html', 'w') as f:
+        print("""
+        <html>
+        <head>
+            <style>
+            div span { border: 1px solid black; background: gray; font-size: 150%; padding: 0.2em; }
+            </style>
+        </head>
+        <body>
+           <div>All """+str(sum([len(l) for l in class_images.values()]))+"""</div>
+        """ + body + """
+        </body>
+        </html>
+        """, file=f)
+
+make_dataset_viewer(mini2018)
+
+# %%
+
+train_set, train_loader = miniset('mxnet-learn/'+mini2018)
+acc = evaluate_accuracy(train_loader, our_net)
+print(acc)
+
+test_set, test_loader = miniset('mxnet-learn/'+mini2018, False)
+acc = evaluate_accuracy(test_loader, our_net)
+print(acc)
+
+
+# %%
+train_it(our_net, trainer, train_loader, test_loader, n_epochs=100)
+
+
+# %%
+acc = evaluate_accuracy(emnist_train_loader, our_net)
+print(acc)
+
+# %%
+
+save_now(our_net)
+
+# %%
+
+import matplotlib.pyplot as plt
+i = 550
+dset = emnist_test_dataset
+print(i, dset[i][1], classes[dset[i][1]])
+plt.imshow(dset[i][0][0,:,:].asnumpy())
+
+# %%
+
+i = 275
+dset = test_set
+print(i, dset[i][1], classes[dset[i][1]])
+plt.imshow(dset[i][0][0,:,:].asnumpy())
+# %%
 
 
 # %%

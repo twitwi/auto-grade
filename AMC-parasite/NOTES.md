@@ -49,6 +49,7 @@ yarn run serve
 In the latex, use \ocr{12} (for 12 boxes), using this in header
 
 ~~~
+%%%%% TODO UPDATE WITH THE MOST RECENT + HOW TO GET A TEMPLATE .yaml from the logs
 %%%%%%%%% OCR %%%%%%%%%
 \usepackage{pgffor}
 \newcounter{ocrfieldcount}[AMCquestionaff]
