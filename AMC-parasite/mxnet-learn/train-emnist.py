@@ -32,9 +32,9 @@ ctx = mx.cpu()
 
 # %%
 
-
 our_classes = "=:;.,-_()[]!?*/'+⁹"
-classes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"+our_classes
+emnist_classes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"
+classes = emnist_classes + our_classes
 
 
 # %%

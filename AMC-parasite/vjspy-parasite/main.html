@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="lib/vue.js"></script>
+    <link rel="stylesheet" href="lib/picnic.min.css" />
+    <title>AMC Parasite</title>
+    <style>
+        body { /* night mode */
+            background: #000020;
+            filter: invert(100%);
+        }
+        .debug {
+            height: 300px;
+            overflow-y: scroll;
+            resize: both;
+        }
+
+        .user {
+            border: 5px solid darkgrey;
+        }
+        .user span {
+            font-weight: bold;
+        }
+        a {
+            color: #42b983;
+        }
+        .annotated-box, .scans {
+            display: inline-block;
+        }
+        .annotated-box img {
+            margin-bottom: 2em;
+        }
+        .annotated-box img, .scans img {
+            height: 2.5em;
+        }
+        .annotated-box .annotation {
+            width: 0;
+            position: relative;
+            left: -1em;
+        }
+        .unguessed {
+            border: 1px solid black;
+            padding: 3px;
+            margin: 0 2px;
+        }
+        .unguessed.current {
+            border-color: red;
+        }
+
+        #toggle:checked ~ .offOnToggle { display: none; }
+
+        .img1em img { height: 1em; }
+        .group { border-right: 2px solid black; }
+    </style>
+</head>
+<body>
+    <div id="main">
+        <h1>AMC Parasiting: {{project_path}}</h1>
+
+        <div class="exam-identify">
+            <button @click="load_info()">load config.yaml / parasite.xlsx</button><br/>
+            <button @click="iterateGuess()">do guess</button><br/>
+            <button @click="save_xlsx()">...save</button><br/>
+
+
+            Unguessed :
+            <span v-for="u in unguessed"
+                  :class="{unguessed: true, current: u===currentUnguessed}"
+                  :key="'ung'+u"
+                  @click="currentUnguessed = u"
+                  @click.right.prevent="focus('cr/page-'+u+'-'+boxes[u].groups[0].rows[0][4]+'.jpg')"
+                  >{{u}}</span>
+            <hr/>
+
+            <div v-if="boxes[currentUnguessed] !== undefined" class="img1em">
+                <br/>
+                <span v-for="group in boxes[currentUnguessed].groups" :key="'ungg'+group.blob" class="group">
+                    <span v-for="r in group.rows" :key="'unggg'+r[2]" class="annotated-box">
+                    <img :src="r[13]" />
+                    <span class="annotation">{{r[12]}}</span>
+                    </span>
+                </span>
+            </div>
+              
+            <div v-if="false" class="all-boxes img1em">
+                <div v-for="(log, u) in raw_boxes" :key="u">
+                    {{u}}: <img v-for="r in log" :key="r[2]" :src="r[13]"/>
+                </div>
+            </div>
+
+            <label for="toggle">
+                Show only unguessed
+            </label>
+            <input type="checkbox" id="toggle" />
+            <div v-for="(row,i) in data_rows" :key="i" :class="{offOnToggle: guess[i] !== undefined}">
+                <span :class="{unguessed: guess[i] === undefined}" @click="affect_user_to_row(currentUnguessed, i)">[ {{i}} ]</span>
+                <span>{{ row[1] }}</span> --
+                <span>{{ row[2] }}</span>
+                ⇒
+                <span v-if="guess[i]" class="img1em">
+                    {{ guess[i] }}
+                    <span v-for="group in boxes[guess[i]].groups" :key="group.blob">
+                        <span v-for="r in group.rows" :key="r[2]" class="scans">
+                            <img :src="r[13]" />
+                        </span>
+                    </span>
+                </span>
+            </div>
+              
+
+
+            <pre class="debug">{{data_rows}}</pre>
+            <pre class="debug">{{debug_logs}}</pre>
+            <pre class="debug">{{cfg}}</pre>
+        </div>
+    </div>    
+
+    <script src="lib/vuejspython.js"></script>
+    <script src="suggestions.js"></script>
+    <script>vuejspython.start({
+        data: () => ({
+            currentUnguessed: 1
+        }),
+        computed: {
+            boxes: function() {
+                let data = this.raw_boxes
+                let get = (d, name, q, min = 0, max = undefined) => ({ name, blob: name + '--' + q + '--' + min + '--' + max, rows: d.filter(r => r[7] === q).slice(min, max) })
+                let boxes = {}
+                //this.unguessed = {}
+                Object.keys(data).forEach(u => {
+                    let d = data[u]
+                    boxes[u] = {
+                        student: u,
+                        groups: [
+                            get(d, 'firstname', ...this.cfg.fields.firstname),
+                            get(d, 'lastname', ...this.cfg.fields.lastname)
+                        ]
+                    }
+                })
+                return boxes
+            },
+            unguessed: function() {
+                let ung = JSON.parse(JSON.stringify(Object.keys(this.boxes)))
+                for (let i in this.guess) {
+                    ung.splice(ung.indexOf(this.guess[i]), 1)
+                }
+                return ung
+            },
+        },
+        methods: {
+            iterateGuess() {
+                this.fillGuesses([...Object.values(this.guess)], (o, i) => this.guess[i] !== undefined ? null : o)
+            },
+            fillGuesses(skip = [], filt = o => o) {
+                let upper = v => v === null ? null : v.toUpperCase()
+                let suggestions = {
+                    firstname: this.data_rows.map(o => upper(o[1])).map(filt),
+                    lastname: this.data_rows.map(o => upper(o[2])).map(filt)
+                }
+                console.log(suggestions)
+                for (let k in this.boxes) {
+                    if (skip.indexOf(k) !== -1) continue
+                    let guessFirstname = S.bestGuess(this.boxes[k].groups[0], suggestions)
+                    let guessLastname = S.bestGuess(this.boxes[k].groups[1], suggestions)
+                    let ok = false
+                    if (guessFirstname !== null && guessLastname !== null) {
+                        if (guessFirstname[1] === guessLastname[1] || suggestions.firstname[guessLastname[1]] === guessFirstname[0]) {
+                            if (this.guess[guessLastname[1]] === undefined || this.guess[guessLastname[1]] === k) {
+                                this.affect_user_to_row(k, guessLastname[1])
+                                ok = true
+                            }
+                        }
+                    }
+                    if (!ok) {
+                        if (guessFirstname === null) guessFirstname = [-1, -2, -3]
+                        if (guessLastname === null) guessLastname = [-1, -2, -3]
+                        console.log(k, ':', guessFirstname[1] === guessLastname[1], guessFirstname[1], guessLastname[1], guessFirstname[0], guessLastname[0])
+                        //this.unguessed[k] = { k, log: [k, ':', guessFirstname[1] === guessLastname[1], guessFirstname[1], guessLastname[1], guessFirstname[0], guessLastname[0]] }
+                    }
+                }
+            },
+
+        }
+    })</script>
+</body>
+</html>
+

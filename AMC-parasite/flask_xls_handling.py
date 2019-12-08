@@ -52,7 +52,7 @@ def on_xlsx_read_rows(data):
     emit('got-xlsx-structured-rows' if 'callback' not in data else data['callback'], res)
 
 @socketio.on('xlsx-add-sheet')
-def on_xlsx_read_rows(data):
+def on_xlsx_add_sheet(data):
     from collections import Set
     cfg = read_config(local_MC + data['pro'])
     xlfile = local_MC + data['pro'] + '/parasite.xlsx'
