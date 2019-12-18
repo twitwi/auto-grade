@@ -20,6 +20,15 @@ docker--build -t amc --network host   -f Dockerfile-1404-custom .
 Then it can be run with `@amc` and scan etc.
 
 
+### Re-refresh
+
+~~~
+pip install vuejspython
+pip install pyyaml
+pip install openpyxl
+pip install imageio
+~~~
+
 ### Annotator (inspired by ../from-MC-Projects)
 
 It uses a Python+Flask web server, interfaced using socket.io with the vue.js UI in the browser.

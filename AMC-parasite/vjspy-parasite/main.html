@@ -55,24 +55,21 @@
         .img1em img { height: 1em; }
         .group { border-right: 2px solid black; }
     </style>
-</head>
-<body>
-    <div id="main">
-        <h1>AMC Parasiting: {{project_path}}</h1>
+
+    <script type="text/x-template" id="component-exam-identify">
 
         <div class="exam-identify">
             <button @click="load_info()">load config.yaml / parasite.xlsx</button><br/>
             <button @click="iterateGuess()">do guess</button><br/>
             <button @click="save_xlsx()">...save</button><br/>
 
-
             Unguessed :
             <span v-for="u in unguessed"
-                  :class="{unguessed: true, current: u===currentUnguessed}"
-                  :key="'ung'+u"
-                  @click="currentUnguessed = u"
-                  @click.right.prevent="focus('cr/page-'+u+'-'+boxes[u].groups[0].rows[0][4]+'.jpg')"
-                  >{{u}}</span>
+                :class="{unguessed: true, current: u===currentUnguessed}"
+                :key="'ung'+u"
+                @click="currentUnguessed = u"
+                @click.right.prevent="focus('cr/page-'+u+'-'+boxes[u].groups[0].rows[0][4]+'.jpg')"
+                >{{u}}</span>
             <hr/>
 
             <div v-if="boxes[currentUnguessed] !== undefined" class="img1em">
@@ -84,17 +81,17 @@
                     </span>
                 </span>
             </div>
-              
+            
             <div v-if="false" class="all-boxes img1em">
                 <div v-for="(log, u) in raw_boxes" :key="u">
                     {{u}}: <img v-for="r in log" :key="r[2]" :src="r[13]"/>
                 </div>
             </div>
 
-            <label for="toggle">
+            <input type="checkbox" id="toggle" />
+            <label for="toggle" class="checkable">
                 Show only unguessed
             </label>
-            <input type="checkbox" id="toggle" />
             <div v-for="(row,i) in data_rows" :key="i" :class="{offOnToggle: guess[i] !== undefined}">
                 <span :class="{unguessed: guess[i] === undefined}" @click="affect_user_to_row(currentUnguessed, i)">[ {{i}} ]</span>
                 <span>{{ row[1] }}</span> --
@@ -109,18 +106,29 @@
                     </span>
                 </span>
             </div>
-              
-
-
+            
             <pre class="debug">{{data_rows}}</pre>
-            <pre class="debug">{{debug_logs}}</pre>
             <pre class="debug">{{cfg}}</pre>
         </div>
+    </script>
+
+
+</head>
+<body>
+    <div id="main">
+        <h1>AMC Parasiting: {{project_path}}</h1>
+
+        <exam-identify v-if="true" :project_path="project_full_path"></exam-identify>
+
+        <pre class="debug">{{debug_logs}}</pre>
     </div>    
 
     <script src="lib/vuejspython.js"></script>
     <script src="suggestions.js"></script>
-    <script>vuejspython.start({
+    <script>
+    
+    vuejspython.component('ExamIdentify', 'exam-identify', {
+        template: '#component-exam-identify',
         data: () => ({
             currentUnguessed: 1
         }),
@@ -184,7 +192,12 @@
             },
 
         }
-    })</script>
+    })
+    
+    vuejspython.start({
+
+    })
+    </script>
 </body>
 </html>
 

@@ -5,24 +5,15 @@ from tools_generic import read_config, parse_xlsx
 from tools_images import load_images
 
 @model
-class AMCParasite:
+class ExamIdentify:
+    props = ['project_path']
+    project_path = ''
+
     # reactive properties
-    local_MC = config.local_MC
-    project_path = config.default_project_dir
     cfg = {}
     data_rows = []
     guess = {}
     raw_boxes = {}
-    debug_logs = []
-
-
-    def __init__(self, argv):
-        if len(argv) > 1:
-            self.project_path = argv[1]
-    
-
-    def log(self, type, msg):
-        self.debug_logs.append((type, msg))
 
     def load_info(self):
         self.load_yaml_config()
@@ -30,11 +21,11 @@ class AMCParasite:
         self.load_boxes()
 
     def load_yaml_config(self):
-        self.cfg = read_config(self.local_MC + self.project_path)
+        self.cfg = read_config(self.project_path)
 
     def load_xlsx(self, data):
         headers = self.cfg['headers']
-        xlfile = self.local_MC + self.project_path + '/parasite.xlsx'
+        xlfile = self.project_path + '/parasite.xlsx'
         self.data_rows = parse_xlsx(xlfile, data, headers, lambda a,b: self.log(a, b))
         #
         guess = {}
@@ -48,7 +39,7 @@ class AMCParasite:
         for ind in self.guess.keys():
             annotated_rows[ind][4] = int(self.guess[ind])
         headers = self.cfg['headers']
-        xlfile = self.local_MC + self.project_path + '/parasite.xlsx'
+        xlfile = self.project_path + '/parasite.xlsx'
         parse_xlsx(xlfile, {'write': annotated_rows}, headers, lambda a,b: self.log(a, b))
 
     def load_boxes(self):
@@ -56,14 +47,35 @@ class AMCParasite:
         if fields['lastname'][0] != fields['firstname'][0]:
             self.log('error', 'Unimplemented: firstname and lastname in different questions')
             return
-        project_full_path = self.local_MC + self.project_path
         options = {'predict': True, 'onlyq': fields['lastname'][0] }
-        self.raw_boxes = load_images(project_full_path, options)
+        self.raw_boxes = load_images(self.project_path, options)
 
     def affect_user_to_row(self, user, row):
         guess = self.guess.copy()
         guess[row] = str(user)
         self.guess = guess
+
+@model
+class AMCParasite:
+    # reactive properties
+    local_MC = config.local_MC
+    project_path = config.default_project_dir
+    debug_logs = []
+
+    def computed_project_full_path(self):
+        if self.project_path.startswith('/'):
+            return self.project_path
+        p = self.local_MC
+        if p[-1] != '/':
+            p += '/'
+        return p + self.project_path
+
+    def __init__(self, argv):
+        if len(argv) > 1:
+            self.project_path = argv[1]
+    
+    def log(self, type, msg):
+        self.debug_logs.append((type, msg))
 
 
 import sys
