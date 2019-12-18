@@ -1,7 +1,8 @@
 
+import os
 
 #local_MC = '/home/twilight/MC-Projects/'
-local_MC = '/home/twilight/tmp/'
+local_MC = os.environ['HOME'] + '/MC-Projects/'
 default_project_dir = '2019-infospichi-3-exam-2'
 
 our_classes = "=:;.,-_()[]!?*/'+⁹"
