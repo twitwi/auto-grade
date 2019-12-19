@@ -73,6 +73,8 @@ class AMCParasite:
     def __init__(self, argv):
         if len(argv) > 1:
             self.project_path = argv[1]
+            if self.project_path.startswith(self.local_MC):
+                self.project_path = self.project_path[len(self.local_MC):]
     
     def log(self, type, msg):
         self.debug_logs.append((type, msg))
