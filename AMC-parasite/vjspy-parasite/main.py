@@ -4,6 +4,10 @@ import config
 from tools_generic import read_config, parse_xlsx
 from tools_images import load_images
 
+import os
+import shutil
+from datetime import datetime
+
 @model
 class ExamIdentify:
     props = ['project_path']
@@ -78,6 +82,15 @@ class AMCParasite:
     
     def log(self, type, msg):
         self.debug_logs.append((type, msg))
+
+    def save_miniset(self, l):
+        dir = 'miniset-'+datetime.strftime(datetime.now(), '%Y-%m-%d_%H:%M')
+        os.mkdir(dir)
+        for c, impath in l:
+            cdir = dir + '/class-' + c
+            if not os.path.exists(cdir):
+                os.mkdir(cdir)
+            shutil.copy2(impath, cdir)
 
 
 import sys
