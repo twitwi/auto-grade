@@ -58,6 +58,8 @@
         .img1em img { height: 1em; }
         .group { border-right: 2px solid black; }
 
+        .for-miniset .sample { display: inline-block; text-align: center; }
+        .current-miniset .sample { display: inline-block; border: 1px solid black; cursor: crosshair; text-align: center;}
         .leftborder { border-left: 10px solid yellow !important;}
     </style>
 
@@ -117,12 +119,12 @@
                 <input type="checkbox" v-model="displayForMiniset"/>
                 <span class="checkable">For miniset review</span>
             </label>
-            <div v-if="displayForMiniset">
+            <div v-if="displayForMiniset" class="for-miniset">
                 <div v-for="(row,i) in data_rows" :key="i">
                     <div v-if="guess[i] !== undefined" class="img1em">
                         <a href=" " @click.prevent="addGuessToMiniset(boxes[guess[i]], row, guess[i], i)">[add-all]</a>
                         <div v-for="anno in makeListForMiniset(boxes[guess[i]], row)"
-                             style="display: inline-block">
+                             class="sample">
                              <span v-if="anno == 'ENDGROUP'" style="display: inline-block; width: 5em;"></span>
                              <span v-else>
                                 {{anno[0]}}<br/><img :src="anno[1][13]"/>
@@ -146,14 +148,16 @@
 
         <exam-identify v-if="tab == 'exam-identify'" :project_path="project_full_path" @add-to-miniset="miniset.push($event)"></exam-identify>
 
-        <div v-for="anno,ia in sortedMiniset"
-             style="display: inline-block; border: 1px solid black; cursor: crosshair;"
-             :class="{leftborder: ia>0 && anno[0] != sortedMiniset[ia-1][0]}"
-             @click="removeFromMiniset(anno)"
-             >
-             {{anno[0]}}<br/><img :src="anno[1][13]"/>
+        <div class="current-miniset">
+            <div v-for="anno,ia in sortedMiniset"
+                :class="{sample: true, leftborder: ia>0 && anno[0] != sortedMiniset[ia-1][0]}"
+                @click="removeFromMiniset(anno)"
+                >
+                {{anno[0]}}<br/><img :src="anno[1][13]"/>
+            </div>
+            <a class="button" @click="saveCurrentMiniset()">Save Miniset</a>
+            <br/>{{project_path}}
         </div>
-        <a class="button" @click="saveCurrentMiniset()">Save Miniset</a>
         <pre class="debug">{{debug_logs}}</pre>
     </div>    
 
