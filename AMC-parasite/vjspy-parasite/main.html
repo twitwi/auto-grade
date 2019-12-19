@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="lib/picnic.min.css" />
     <title>AMC Parasite</title>
     <style>
+        h1 a {
+            cursor: pointer;
+        }
         body { /* night mode */
             background: #000020;
             filter: invert(100%);
@@ -54,6 +57,8 @@
 
         .img1em img { height: 1em; }
         .group { border-right: 2px solid black; }
+
+        .leftborder { border-left: 10px solid yellow !important;}
     </style>
 
     <script type="text/x-template" id="component-exam-identify">
@@ -98,6 +103,7 @@
                 <span>{{ row[2] }}</span>
                 ⇒
                 <span v-if="guess[i]" class="img1em">
+                    <a href=" " @click.prevent="addGuessToMiniset(boxes[guess[i]], row, guess[i], i)">[add-all]</a>
                     {{ guess[i] }}
                     <span v-for="group in boxes[guess[i]].groups" :key="group.blob">
                         <span v-for="r in group.rows" :key="r[2]" class="scans">
@@ -106,6 +112,26 @@
                     </span>
                 </span>
             </div>
+
+            <label>
+                <input type="checkbox" v-model="displayForMiniset"/>
+                <span class="checkable">For miniset review</span>
+            </label>
+            <div v-if="displayForMiniset">
+                <div v-for="(row,i) in data_rows" :key="i">
+                    <div v-if="guess[i] !== undefined" class="img1em">
+                        <a href=" " @click.prevent="addGuessToMiniset(boxes[guess[i]], row, guess[i], i)">[add-all]</a>
+                        <div v-for="anno in makeListForMiniset(boxes[guess[i]], row)"
+                             style="display: inline-block">
+                             <span v-if="anno == 'ENDGROUP'" style="display: inline-block; width: 5em;"></span>
+                             <span v-else>
+                                {{anno[0]}}<br/><img :src="anno[1][13]"/>
+                            </span>
+                        </div>
+                   </div>
+                </div>
+            </div>
+
             
             <pre class="debug">{{data_rows}}</pre>
             <pre class="debug">{{cfg}}</pre>
@@ -116,10 +142,18 @@
 </head>
 <body>
     <div id="main">
-        <h1>AMC Parasiting: {{project_path}}</h1>
+        <h1>AMC Parasiting: {{project_path}} <a @click="tab = 'exam-identify'">[Id]</a></h1>
 
-        <exam-identify v-if="true" :project_path="project_full_path"></exam-identify>
+        <exam-identify v-if="tab == 'exam-identify'" :project_path="project_full_path" @add-to-miniset="miniset.push($event)"></exam-identify>
 
+        <div v-for="anno,ia in sortedMiniset"
+             style="display: inline-block; border: 1px solid black; cursor: crosshair;"
+             :class="{leftborder: ia>0 && anno[0] != sortedMiniset[ia-1][0]}"
+             @click="removeFromMiniset(anno)"
+             >
+             {{anno[0]}}<br/><img :src="anno[1][13]"/>
+        </div>
+        <a class="button" @click="saveCurrentMiniset()">Save Miniset</a>
         <pre class="debug">{{debug_logs}}</pre>
     </div>    
 
@@ -130,7 +164,8 @@
     vuejspython.component('ExamIdentify', 'exam-identify', {
         template: '#component-exam-identify',
         data: () => ({
-            currentUnguessed: 1
+            currentUnguessed: 1,
+            displayForMiniset: false,
         }),
         computed: {
             boxes: function() {
@@ -159,6 +194,33 @@
             },
         },
         methods: {
+            makeListForMiniset(bo, row) {
+                let targets = [row[1].toUpperCase(), row[2].toUpperCase()] // this is the non-generic line
+                let res = []
+                for (let gi in bo.groups) {
+                    let g = bo.groups[gi]
+                    let t = targets[gi]
+
+                    let i = 0
+                    let j = 0
+                    while (i < t.length && j < g.rows.length) {
+                        while (j < g.rows.length && g.rows[j][12] == '_') j++
+                        if (j < g.rows.length) {
+                            res.push([t[i], g.rows[j]])
+                        }
+                        i++
+                        j++
+                    }
+                    res.push('ENDGROUP')
+                }
+                return res
+            },
+            addGuessToMiniset(bo, row, _g, _i) {
+                for (let ev of this.makeListForMiniset(bo, row)) {
+                    if (ev == 'ENDGROUP') continue;
+                    this.$emit('add-to-miniset', ev)
+                }
+            },
             iterateGuess() {
                 this.fillGuesses([...Object.values(this.guess)], (o, i) => this.guess[i] !== undefined ? null : o)
             },
@@ -195,7 +257,28 @@
     })
     
     vuejspython.start({
-
+        data: () => ({
+            tab: 'exam-identify',
+            miniset: [],
+        }),
+        methods: {
+            removeFromMiniset(anno) {
+                let i = this.miniset.map(a => a[1][13]).indexOf(anno[1][13])
+                if (i != -1) {
+                    this.miniset.splice(i, 1)
+                }
+            },
+            saveCurrentMiniset() {
+                this.save_miniset(this.miniset.map(anno => [anno[0], anno[1][13]]))
+            },
+        },
+        computed: {
+            sortedMiniset() {
+                let res = [...this.miniset]
+                res.sort((a, b) => a[0].localeCompare(b[0]))
+                return res
+            },
+        },
     })
     </script>
 </body>
