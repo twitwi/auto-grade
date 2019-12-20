@@ -68,7 +68,10 @@ S.bestGuess = (function() {
   function bestGuess (group, suggestions) {
     // function clean (a) { return [].filter.call(a, c => c !== '_' && c !== ' ').join('') }
     function clean (a) { return [].map.call(a.replace(/±.*/, ''), c => c !== '_' ? c : ' ').join('').trim() }
-    var pred = clean(group.rows.map(r => r[12]).join(''))
+      var pred = clean(group.rows.map(r => r[12]).join(''))
+      console.log(pred)
+pred = pred.replace(/ [^ ]( |$)/g, '   ').trim()
+      console.log(pred, "....")
     if (pred === '') {
       return null
     }

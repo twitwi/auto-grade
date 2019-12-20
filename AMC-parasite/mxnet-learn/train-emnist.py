@@ -28,7 +28,7 @@ def save_now(net):
 #from gluoncv.data import transforms as gcv_transforms
 
 
-ctx = mx.gpu()
+ctx = mx.cpu()
 
 # %%
 
@@ -209,6 +209,8 @@ our_net.load_parameters(',,,,backup-2019-12-19_15:29')
 print('loaded')
 
 # %%
+our_net.load_parameters('vjspy-parasite/mxnet3.model')
+print('loaded')
 
 # %%
 
@@ -275,6 +277,7 @@ minisets = [
 'miniset-2019-12-19--2018-pwa-1',
 'miniset-2019-12-19--2019-dw2-1',
 'miniset-2019-12-19--2019-infospichi-2',
+'miniset-2019-12-20--2019-ievgen',
 'miniset-2019-12-19--2019-network-1',
 ]
 
@@ -344,7 +347,7 @@ print(acc)
 
 
 # %%
-train_it(our_net, trainer, train_loader, test_loader, n_epochs=50)
+train_it(our_net, trainer, train_loader, test_loader, n_epochs=1)
 
 
 # %%

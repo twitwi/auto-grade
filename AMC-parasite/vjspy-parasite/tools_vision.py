@@ -36,7 +36,7 @@ ctx = None
 def load_model(parameter_file_name):
     global our_net
     global ctx
-    ctx = mx.gpu()
+    ctx = mx.cpu()
     our_net = nn.Sequential()
 #    with our_net.name_scope():
 #        our_net.add(nn.BatchNorm())

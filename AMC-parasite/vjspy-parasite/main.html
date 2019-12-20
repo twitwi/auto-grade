@@ -70,7 +70,7 @@
             <button @click="iterateGuess()">do guess</button><br/>
             <button @click="save_xlsx()">...save</button><br/>
 
-            Unguessed : <button @click="currentUnguessed--">«</button>{{currentUnguessed}}<button @click="currentUnguessed++">»</button><br/>
+            Unguessed : <button @click="currentUnguessed--">«</button><input style="width: 3em; text-align: center" v-model="currentUnguessed"/><button @click="currentUnguessed++">»</button><br/>
             <span v-for="u in unguessed"
                 :class="{unguessed: true, current: u===currentUnguessed}"
                 :key="'ung'+u"
