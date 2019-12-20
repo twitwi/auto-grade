@@ -8,6 +8,7 @@ pip install mxnet #mxnet-cu101  #for gpu
 pip install emnist
 pip install mxboard
 pip install tensorboard
+pip install gluoncv
 ~~~
 
 # Logs

@@ -10,6 +10,8 @@ from mxnet.gluon.data.vision import transforms
 from mxnet.gluon.data.vision.datasets import ImageFolderDataset
 from mxnet.gluon.data import ArrayDataset, SimpleDataset
 from mxnet.gluon.data import DataLoader
+#from gluoncv.data.transforms.image import resize_short_within
+
 
 from emnist import extract_training_samples
 from emnist import extract_test_samples
@@ -26,7 +28,7 @@ def save_now(net):
 #from gluoncv.data import transforms as gcv_transforms
 
 
-ctx = mx.cpu()
+ctx = mx.gpu()
 
 # %%
 
@@ -46,14 +48,23 @@ transform_train_emnist = transforms.Compose([
     transforms.ToTensor(),
 ])
 
+
+def amc_resizer(im):
+    δ = im.shape[0] - im.shape[1]
+    im = mx.image.copyMakeBorder(im, top=0, bot=0, left=δ//2, right=(δ-δ//2), values=255.)
+    return im
+
+
 transform_train = transforms.Compose([
-    transforms.RandomResizedCrop(32, scale=(0.95, 1), ratio=(0.95, 1.05)),
+    amc_resizer,
+    transforms.RandomResizedCrop(32, scale=(0.95, 1.05), ratio=(1., 1.)),
     # Transpose the image from height*width*num_channels to num_channels*height*width
     # and map values from [0, 255] to [0,1]
     transforms.ToTensor(),
 ])
 
 transform_test = transforms.Compose([
+    amc_resizer,
     transforms.RandomResizedCrop(32, scale=(1, 1), ratio=(1, 1)),
     # Transpose the image from height*width*num_channels to num_channels*height*width
     # and map values from [0, 255] to [0,1]
@@ -70,16 +81,17 @@ emnist_test_data = nd.array(255 - emnist_test_data[:,:,:,None])
 
 
 # %%
+BS = 64
 
 emnist_train_dataset = ArrayDataset(SimpleDataset(emnist_train_data).transform(transform_train_emnist), emnist_train_labels)
-emnist_train_loader = DataLoader(emnist_train_dataset, shuffle=True, batch_size=32)
+emnist_train_loader = DataLoader(emnist_train_dataset, shuffle=True, batch_size=BS)
 
 emnist_test_dataset = ArrayDataset(SimpleDataset(emnist_test_data).transform(transform_test), emnist_test_labels)
-emnist_test_loader = DataLoader(emnist_test_dataset, batch_size=32)
+emnist_test_loader = DataLoader(emnist_test_dataset, batch_size=BS)
 
-with SummaryWriter(logdir='./logs') as sw:
-    sw.add_histogram('emnist_classes', mx.nd.array([c for (f,c) in emnist_train_dataset]), bins=np.arange(-0.5, len(classes)+1))
-    sw.add_histogram('emnist_classes', mx.nd.array([c for (f,c) in emnist_test_dataset]), bins=np.arange(-0.5, len(classes)+1))
+#with SummaryWriter(logdir='./logs') as sw:
+#    sw.add_histogram('emnist_classes', mx.nd.array([c for (f,c) in emnist_train_dataset]), bins=np.arange(-0.5, len(classes)+1))
+#    sw.add_histogram('emnist_classes', mx.nd.array([c for (f,c) in emnist_test_dataset]), bins=np.arange(-0.5, len(classes)+1))
 
 # %%
 
@@ -99,11 +111,11 @@ if False:
 if True:
     with our_net.name_scope():
         our_net.add(nn.BatchNorm())
-        our_net.add(nn.Conv2D(channels=16, kernel_size=5))
+        our_net.add(nn.Conv2D(channels=128, kernel_size=5))
         our_net.add(nn.BatchNorm())
         our_net.add(nn.MaxPool2D(4))
         our_net.add(nn.Activation(activation='relu'))
-        our_net.add(nn.Conv2D(channels=50, kernel_size=2))
+        our_net.add(nn.Conv2D(channels=512, kernel_size=2))
         our_net.add(nn.BatchNorm())
         our_net.add(nn.Dropout(rate=0.5))
         our_net.add(nn.MaxPool2D(2))
@@ -114,7 +126,7 @@ softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
 
 # %%
 #our_net.collect_params().initialize(mx.init.Normal(1), ctx=ctx)
-our_net.collect_params().initialize(mx.init.Xavier(rnd_type='gaussian', factor_type='in', magnitude=2), force_reinit=True)
+our_net.collect_params().initialize(mx.init.Xavier(rnd_type='gaussian', factor_type='in', magnitude=2), force_reinit=True, ctx=ctx)
 
 # %%
 
@@ -132,7 +144,11 @@ def evaluate_accuracy(data_iterator, net):
 # %%
 
 #trainer = gluon.Trainer(our_net.collect_params(), 'sgd', {'learning_rate': .1})
-trainer = gluon.Trainer(our_net.collect_params(), 'adam', {'learning_rate': .001})
+
+#trainer = gluon.Trainer(our_net.collect_params(), 'adam', {'learning_rate': .001})
+trainer = gluon.Trainer(our_net.collect_params(), 'adam', {'learning_rate': .0001})
+#trainer = gluon.Trainer(our_net.collect_params(), 'ftml', {})
+
 
 epo = 0
 
@@ -188,7 +204,8 @@ train_it(our_net, trainer, emnist_train_loader, emnist_test_loader, n_epochs=1, 
 save_now(our_net)
 # %%
 
-our_net.load_parameters(',,,,backup-2019-12-07_12:37')
+#our_net.load_parameters(',,,,backup-2019-12-07_12:37')
+our_net.load_parameters(',,,,backup-2019-12-19_15:29')
 print('loaded')
 
 # %%
@@ -216,24 +233,31 @@ def folder_to_class(fold):
             icl = classes.index(ncl) # dummy class.....
     return icl, ncl
 
-def miniset(path, train=True, batch_size=32):
+def miniset(paths, train=True, batch_size=BS):
+    if type(paths) == str:
+        paths = [paths]
+
     transf = transform_train if train else transform_test
-    ifd = ImageFolderDataset(path, flag=0)
 
-    # use folder names ("synsets") to map the loader class to our class index (in "classes") 
-    for ii, (f, cl) in enumerate(ifd.items):
-        icl, ncl = folder_to_class(ifd.synsets[cl])
-        ifd.items[ii] = (f, icl)
+    ifd_all = None
+    for ipath, path in enumerate(paths):
+        ifd = ImageFolderDataset(path, flag=0)
+        # use folder names ("synsets") to map the loader class to our class index (in "classes") 
+        for ii, (f, cl) in enumerate(ifd.items):
+            icl, ncl = folder_to_class(ifd.synsets[cl])
+            ifd.items[ii] = (f, icl)
 
-    #with SummaryWriter(logdir='./logs', flush_secs=5) as sw:
-    #    sw.add_histogram('miniset_classes', mx.nd.array([c for (f,c) in ifd.items]), bins=np.arange(-0.5, len(classes)+1))
+        ifd.synsets = list(classes)
+        #ifd = ifd.transform_first(transf)
+        if ipath == 0:
+            ifd_all = ifd
+        else:
+            ifd_all.items += ifd.items
 
-    ifd.synsets = list(classes)
-    ifd = ifd.transform_first(transf)
+    ifd_all = ifd_all.transform_first(transf)
+    loader = DataLoader(ifd_all, shuffle=True, batch_size=batch_size)
 
-    loader = DataLoader(ifd, shuffle=True, batch_size=batch_size)
-
-    return ifd, loader
+    return ifd_all, loader
 
 # %%
 #mini2 = '2018-12-19-1545245917071'
@@ -245,11 +269,18 @@ def miniset(path, train=True, batch_size=32):
 # they are actually all very correlated as is, no new set since then
 
 mini2018 = '2018-clean-dataset'
-minisets = [mini2018]
+minisets = [
+'miniset-2019-12-19--2018-infospichi-4',
+'miniset-2019-12-19--2018-poo-2',
+'miniset-2019-12-19--2018-pwa-1',
+'miniset-2019-12-19--2019-dw2-1',
+'miniset-2019-12-19--2019-infospichi-2',
+'miniset-2019-12-19--2019-network-1',
+]
 
 # %%
 for mi, mns in enumerate(minisets):
-    print(mns)
+    print(mi, '))', mns)
     dataset, loader = miniset('mxnet-learn/'+mns)
     with SummaryWriter(logdir='./logs') as sw:
         sw.add_histogram('all_minisets', mx.nd.array([c for (f,c) in dataset]), bins=np.arange(-0.5, len(classes)+1), global_step=mi)
@@ -299,21 +330,21 @@ def make_dataset_viewer(reldir):
         </html>
         """, file=f)
 
-make_dataset_viewer(mini2018)
+make_dataset_viewer(minisets[0])
 
 # %%
 
-train_set, train_loader = miniset('mxnet-learn/'+mini2018)
+train_set, train_loader = miniset(['mxnet-learn/'+m for m in minisets[:-1]])
 acc = evaluate_accuracy(train_loader, our_net)
 print(acc)
 
-test_set, test_loader = miniset('mxnet-learn/'+mini2018, False)
+test_set, test_loader = miniset('mxnet-learn/'+minisets[-1], False)
 acc = evaluate_accuracy(test_loader, our_net)
 print(acc)
 
 
 # %%
-train_it(our_net, trainer, train_loader, test_loader, n_epochs=100)
+train_it(our_net, trainer, train_loader, test_loader, n_epochs=50)
 
 
 # %%
