@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="lib/picnic.min.css" />
     <title>AMC Parasite</title>
     <style>
+        /* main */
         h1 a {
             cursor: pointer;
         }
@@ -20,6 +21,8 @@
             overflow-y: scroll;
             resize: both;
         }
+        .current-menu {color: black;}
+        /* unclassified */
 
         .user {
             border: 5px solid darkgrey;
@@ -62,6 +65,21 @@
         .current-miniset .sample { display: inline-block; border: 1px solid black; cursor: crosshair; text-align: center;}
         .leftborder { border-left: 10px solid yellow !important;}
     </style>
+
+    <script type="text/x-template" id="component-exam-grade">
+        <div class="exam-grade">
+            {{status}}
+            <button @click="load_yaml_config()">(re)load config.yaml</button>
+            <select v-if="cfg.fields" v-model="currentField">
+                <option v-for="(o,i) in fieldStringId" :value="i">{{o}}</option>
+            </select>
+            <pre>{{JSON.stringify(boxes)}}</pre>
+            <ul>
+                <li v-for="b in boxes">{{b}}</li>
+            </ul>
+            <pre>{{JSON.stringify(currentFieldDescription)}}</pre>
+        </div>
+    </script>
 
     <script type="text/x-template" id="component-exam-identify">
 
@@ -144,10 +162,14 @@
 </head>
 <body>
     <div id="main">
-        <h1>AMC Parasiting: {{project_path}} <a @click="tab = 'exam-identify'">[Id]</a></h1>
+        <h1>AMC Parasiting: {{project_path}}
+            <a v-for="(v,k) in {identify: 'Id', grade: 'Grade'}" :class="{'current-menu': tab=='exam-'+k}" @click="tab = 'exam-'+k">[{{v}}]</a>
+        </h1>
 
         <exam-identify v-if="tab == 'exam-identify'" :project_path="project_full_path" @add-to-miniset="miniset.push($event)"></exam-identify>
+        <exam-grade v-if="tab == 'exam-grade'" :project_path="project_full_path" @add-to-miniset="miniset.push($event)"></exam-grade>
 
+        <hr/>
         <div class="current-miniset">
             <div v-for="anno,ia in sortedMiniset"
                 :class="{sample: true, leftborder: ia>0 && anno[0] != sortedMiniset[ia-1][0]}"
@@ -164,7 +186,67 @@
     <script src="lib/vuejspython.js"></script>
     <script src="suggestions.js"></script>
     <script>
-    
+
+    vuejspython.component('ExamGrade', 'exam-grade', {
+        template: '#component-exam-grade',
+        data: () => ({
+            currentField: 13,
+            status: 'Loading...',
+        }),
+        mounted() {
+            // hum vuejspython setup is actually async it seems -> should look at async components to be better integrated I think
+            setTimeout(()=> this.doInit(), 1000)
+        },
+        watch: {
+            currentField(f) {
+                console.log("FIELD",f)
+            }
+        },
+        computed : {
+            noCfg() {
+                return this.cfg.fields === undefined
+            },
+            fields() {
+                if (this.noCfg) return []
+                return this.cfg.fields.more
+            },
+            fieldStringId() {
+                return this.fields.map(o => o.name + (o.boxes.length>0 ? JSON.stringify(o.boxes) : '')) // set threshold to 1 to have cleaner names sometimes
+            },
+            currentFieldDescription() {
+                if (this.noCfg) return null
+                return this.fields[this.currentField]
+            },
+            boxes() {
+                if (this.noCfg) return {}
+                if (typeof this.raw_boxes === 'undefined') return {}
+                let qId = this.currentFieldDescription.boxes[0]
+                let data = this.raw_boxes[qId]
+                if (data === undefined || data === []) {
+                    this.status = 'Waiting for boxes for '+qId
+                    this.load_boxes(qId)
+                    return // wait for this.raw_boxes to be loaded for this key
+                }
+                this.status = ''
+                let get = (d, name, q, min = 0, max = undefined) => ({ name, blob: name + '--' + q + '--' + min + '--' + max, rows: d.filter(r => r[7] === q).slice(min, max) })
+                let boxes = {}
+                Object.keys(data).forEach(u => {
+                    let d = data[u]
+                    boxes[u] = {
+                        student: u,
+                        group: get(d, this.fieldStringId[this.currentField], ...this.currentFieldDescription.boxes),
+                    }
+                })
+                return boxes
+            },
+        },
+        methods: {
+            doInit() {
+                this.load_yaml_config()
+            },
+        },
+    })
+
     vuejspython.component('ExamIdentify', 'exam-identify', {
         template: '#component-exam-identify',
         data: () => ({
@@ -262,7 +344,7 @@
     
     vuejspython.start({
         data: () => ({
-            tab: 'exam-identify',
+            tab: 'exam-grade',
             miniset: [],
         }),
         methods: {

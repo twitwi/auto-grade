@@ -1,5 +1,46 @@
 
 
+# 2020-09-24 Re-Doc
+
+
+(amc was with a modified docker image)
+
+Did:
+
+~~~~
+pip install vuejspython
+pip install pyyaml
+pip install openpyxl
+pip install imageio
+
+pip install mxnet
+~~~
+
+
+in the AMC project, open amc-compiled.amc and copy/modify into the template parasite.yaml, helper:
+
+~~~
+cat amc-compiled.amc |grep '^ - '
+~~~
+
+in the AMC project, put the list of student in parasite.xlsx (colonnes firstname/lastname/username/examid
+
+
+
+~~~
+cd vjspy-parasite
+python3 main.py
+~~~
+
+<http://localhost:4260/main.html>
+
+
+works only for identification?
+
+
+----
+
+
 A new start from from-MC-projects.
 
 Will do a UI that helps around AMC, and maybe replace the UI completely at some point.

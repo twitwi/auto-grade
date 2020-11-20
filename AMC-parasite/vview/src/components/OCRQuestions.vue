@@ -248,7 +248,6 @@ export default {
     doGuess () {
       let f = this.currentField
       let boxes = this.formatBoxesForField(this.qBoxes[this.currentQ], f)
-      console.log(boxes)
       let o = {}
       for (let u in boxes) {
         o[u] = S.bestGuess(boxes[u], this.suggestions)

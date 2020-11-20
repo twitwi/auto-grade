@@ -8,6 +8,33 @@ import os
 import shutil
 from datetime import datetime
 
+
+@model
+class ExamGrade:
+    props = ['project_path']
+    project_path = ''
+
+    # reactive properties
+    cfg = {}
+    raw_boxes = {}
+
+    def load_yaml_config(self):
+        self.cfg = read_config(self.project_path)
+        fields = self.cfg['fields']
+
+    def load_boxes(self, for_q):
+        fields = self.cfg['fields']
+        if for_q in self.raw_boxes: return
+        # avoid writing to the default shared {} by making a copy
+        self.raw_boxes = {**self.raw_boxes, for_q: []}
+        options = {'predict': True, 'onlyq': for_q }
+        self.raw_boxes = {
+            **self.raw_boxes,
+            for_q: load_images(self.project_path, options),
+        }
+        #del self.raw_boxes[for_q]
+        print(self.raw_boxes)
+
 @model
 class ExamIdentify:
     props = ['project_path']

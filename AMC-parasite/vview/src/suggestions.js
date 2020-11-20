@@ -81,6 +81,7 @@ function bestGuess (group, suggestions) {
   if (suggest === undefined) suggest = suggestions.DEFAULT
   let dists = suggest.map(dist)
   let imax = argmin(dists)
+  if (imax < 0) console.log(imax, dists)
   return [suggest[imax], imax, dists]
 }
 
