@@ -22,6 +22,8 @@
             resize: both;
         }
         .current-menu {color: black;}
+
+
         /* unclassified */
 
         .user {
@@ -33,6 +35,7 @@
         a {
             color: #42b983;
         }
+
         .annotated-box, .scans {
             display: inline-block;
         }
@@ -42,7 +45,14 @@
         .annotated-box img, .scans img {
             height: 2.5em;
         }
+        .hide-character-annotation .annotated-box img {
+            margin-bottom: 0; /* override */
+        }
+        .hide-character-annotation .annotated-box .annotation {
+            display: none;
+        }
         .annotated-box .annotation {
+            display: inline-block;
             width: 0;
             position: relative;
             left: -1em;
@@ -73,7 +83,34 @@
             <select v-if="cfg.fields" v-model="currentField">
                 <option v-for="(o,i) in fieldStringId" :value="i">{{o}}</option>
             </select>
-            <pre>{{JSON.stringify(boxes)}}</pre>
+            <label style="margin-left: 10em">
+                <input type="checkbox" v-model="showAnnotations"/>
+                <span>Show Annotations</span>
+            </label>
+            <div class="for-table img1em" v-if="currentFieldDescription && boxes !== {}">
+                <table :class="{'sorting-table':true, 'hide-character-annotation': !showAnnotations}" ref="table">
+                    <thead>
+                    <tr>
+                        <th v-for="e in currentFieldDescription.propositions" :key="'th'+e"
+                        :style="'width:'+(100/currentFieldDescription.propositions.length)+'%'"
+                        :class="{ ok: currentFieldDescription.ok === e }"
+                        >|{{ e }}|</th>
+                    </tr>
+                    </thead>
+                    <tr v-for="(group, u) in boxes" :key="group.blob + '--' + u" :class="{current: orderedUsers[currentUser] === u}">
+                    <td v-for="e in currentFieldDescription.propositions" :key="'td'+e">
+                        <span v-if="guess[currentField][u] === e" class="">
+                            <span v-for="r in group.group.rows" :key="'character'+r[2]" class="annotated-box">
+                                <img :src="r[13]" /><span class="annotation">{{r[12]}}</span>
+                            </span>
+                        </span>
+                    </td>
+                    </tr>
+                </table>
+            </div>
+          
+
+            <pre>{{JSON.stringify(guess)}}</pre>
             <ul>
                 <li v-for="b in boxes">{{b}}</li>
             </ul>
@@ -191,16 +228,48 @@
         template: '#component-exam-grade',
         data: () => ({
             currentField: 13,
+            currentUser: 0,
+            showAnnotations: false,
+            guess: [], // field -> user -> guess
             status: 'Loading...',
         }),
         mounted() {
             // hum vuejspython setup is actually async it seems -> should look at async components to be better integrated I think
             setTimeout(()=> this.doInit(), 1000)
+            this.guess[this.currentField] = {}
         },
         watch: {
-            currentField(f) {
+            /*currentField(f) {
                 console.log("FIELD",f)
-            }
+                if (!(f in this.guess)) {
+                    this.guess[f] = {}
+                }
+            },*/
+            boxes(boxes) {
+                if (boxes === undefined) return
+                if (boxes === {}) return
+                if (this.currentFieldDescription === null) return
+                if (boxes[this.currentField] === undefined) return
+
+                if (!(this.currentField in this.guess)) {
+                    this.guess[this.currentField] = {}
+                }
+                let g = this.guess[this.currentField]
+                let props = this.currentFieldDescription.propositions
+                let first = props[0]
+                suggestions = {DEFAULT: props}
+                for (let u of Object.keys(boxes)) {
+                    if (!(u in g)) {
+                        //g[u] = first
+                        const bg = S.bestGuess(boxes[u].group, suggestions)
+                        if (bg === null) {
+                            // empty answer
+                        }
+                        const [sug, imax, dists] = S.bestGuess(boxes[u].group, suggestions)
+                        g[u] = props[imax]
+                    }
+                }
+            },
         },
         computed : {
             noCfg() {
@@ -238,6 +307,9 @@
                     }
                 })
                 return boxes
+            },
+            orderedUsers() {
+                return Object.keys(this.boxes)
             },
         },
         methods: {
