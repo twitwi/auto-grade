@@ -1,8 +1,6 @@
-
 S = {}
-S.bestGuess = (function() {
-
-  function argmin (arr) {
+S.bestGuess = (function () {
+  function argmin(arr) {
     let i = arr.length
     let min = Infinity
     let imin = -1
@@ -14,11 +12,11 @@ S.bestGuess = (function() {
     }
     return imin
   }
-  
-  function _all () {
+
+  function _all() {
     return { noms, prenoms, numbers, cost, bestGuess }
   }
-  
+
   let m = new Map()
   m.set('4A', 0.2)
   m.set('3B', 0.2)
@@ -34,7 +32,7 @@ S.bestGuess = (function() {
   m.set('8B', 0.2)
   m.set('9g', 0.2)
   m.set('9G', 0.2)
-  
+
   m.set('_ ', 0.001)
   // group of i and 1
   let i1 = '1iIlL'
@@ -47,8 +45,8 @@ S.bestGuess = (function() {
   for (let c of 'abcdefghijklmnopqrstuvwxyz') {
     m.set(c + c.toUpperCase(), 0.1)
   }
-  
-  function cost (gt, pred) {
+
+  function cost(gt, pred) {
     if (gt === pred) return 0
     let res = m.get(gt + pred)
     if (res === undefined) {
@@ -60,22 +58,25 @@ S.bestGuess = (function() {
     // console.log('cost', gt, pred, res)
     return res
   }
-  
+
   var numbers = 'test/toto/'.split('/')
   var prenoms = 'test/toto'.split('/')
   var noms = 'test/toto'.split('/')
-  
-  function bestGuess (group, suggestions) {
+
+  function bestGuess(group, suggestions) {
     // function clean (a) { return [].filter.call(a, c => c !== '_' && c !== ' ').join('') }
-    function clean (a) { return [].map.call(a.replace(/±.*/, ''), c => c !== '_' ? c : ' ').join('').trim() }
-      var pred = clean(group.rows.map(r => r[12]).join(''))
-      console.log(pred)
-pred = pred.replace(/ [^ ]( |$)/g, '   ').trim()
-      console.log(pred, "....")
-    if (pred === '') {
-      return null
+    function clean(a) {
+      return [].map
+        .call(a.replace(/±.*/, ''), (c) => (c !== '_' ? c : ' '))
+        .join('')
+        .trim()
     }
-    function dist (sug) {
+    var pred = clean(group.rows.map((r) => r[12]).join(''))
+    pred = pred.replace(/ [^ ]( |$)/g, '   ').trim()
+    /*if (pred === '') {
+      return null
+    }*/
+    function dist(sug) {
       if (sug === undefined || sug === null) return 999999
       let res = 0
       let n = pred.length
@@ -99,8 +100,8 @@ pred = pred.replace(/ [^ ]( |$)/g, '   ').trim()
     let dists = suggest.map(dist)
     let imax = argmin(dists)
     if (imax < 0) console.log(imax, dists)
+    //console.log(pred, '....', suggest[imax])
     return [suggest[imax], imax, dists]
   }
-  return bestGuess  
+  return bestGuess
 })()
-
