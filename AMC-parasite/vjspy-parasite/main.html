@@ -23,18 +23,12 @@
         }
         .current-menu {color: black;}
 
+        /* grader */
+        .current {
+            border: 1px solid black;
+        }
 
-        /* unclassified */
-
-        .user {
-            border: 5px solid darkgrey;
-        }
-        .user span {
-            font-weight: bold;
-        }
-        a {
-            color: #42b983;
-        }
+        /* shared */
 
         .annotated-box, .scans {
             display: inline-block;
@@ -57,6 +51,23 @@
             position: relative;
             left: -1em;
         }
+
+        .sheet-image {
+            max-width: 100%;
+        }
+
+        /* unclassified */
+
+        .user {
+            border: 5px solid darkgrey;
+        }
+        .user span {
+            font-weight: bold;
+        }
+        a {
+            color: #42b983;
+        }
+
         .unguessed {
             border: 1px solid black;
             padding: 3px;
@@ -83,21 +94,23 @@
             <select v-if="cfg.fields" v-model="currentField">
                 <option v-for="(o,i) in fieldStringId" :value="i">{{o}}</option>
             </select>
-            <label style="margin-left: 10em">
+            »»»» <button @keydown="keydown($event)" :autofocus="'autofocus'">FOCUS</button> ««««
+            <label style="">
                 <input type="checkbox" v-model="showAnnotations"/>
-                <span>Show Annotations</span>
+                <span>Show Annotations (toggle)</span>
             </label>
             <div class="for-table img1em" v-if="currentFieldDescription && boxes !== {}">
                 <table :class="{'sorting-table':true, 'hide-character-annotation': !showAnnotations}" ref="table">
                     <thead>
                     <tr>
                         <th v-for="e in currentFieldDescription.propositions" :key="'th'+e"
-                        :style="'width:'+(100/currentFieldDescription.propositions.length)+'%'"
+                        NOstyle="'width:'+(100/currentFieldDescription.propositions.length)+'%'"
                         :class="{ ok: currentFieldDescription.ok === e }"
                         >|{{ e }}|</th>
                     </tr>
                     </thead>
-                    <tr v-for="(group, u) in boxes" :key="group.blob + '--' + u" :class="{current: orderedUsers[currentUser] === u}">
+                    <tr v-for="(group, u) in boxes" :key="group.blob + '--' + u" :class="{current: orderedUsers[currentUser] === u}"
+                        @click.right.prevent="showSheetImage('cr/page-'+u+'-'+boxes[u].group.rows[0][4]+'.jpg')">
                     <td v-for="e in currentFieldDescription.propositions" :key="'td'+e">
                         <span v-if="guess[currentField][u] === e" class="">
                             <span v-for="r in group.group.rows" :key="'character'+r[2]" class="annotated-box">
@@ -108,13 +121,15 @@
                     </tr>
                 </table>
             </div>
+            <img :src="currentSheetImage" class="sheet-image" @click.left="currentSheetImage = ''"/>
           
-
+            <!--
             <pre>{{JSON.stringify(guess)}}</pre>
             <ul>
                 <li v-for="b in boxes">{{b}}</li>
             </ul>
             <pre>{{JSON.stringify(currentFieldDescription)}}</pre>
+            -->
         </div>
     </script>
 
@@ -130,7 +145,7 @@
                 :class="{unguessed: true, current: u===currentUnguessed}"
                 :key="'ung'+u"
                 @click="currentUnguessed = u"
-                @click.right.prevent="focus('cr/page-'+u+'-'+boxes[u].groups[0].rows[0][4]+'.jpg')"
+                @click.right.prevent="showSheetImage('cr/page-'+u+'-'+boxes[u].groups[0].rows[0][4]+'.jpg')"
                 >{{u}}</span>
             <hr/>
 
@@ -138,7 +153,7 @@
                 <br/>
                 <span v-for="group in boxes[currentUnguessed].groups" :key="'ungg'+group.blob" class="group">
                     <span v-for="r in group.rows" :key="'unggg'+r[2]" class="annotated-box">
-                    <img :src="r[13]" />
+                    <img :src="r[13]"/>
                     <span class="annotation">{{r[12]}}</span>
                     </span>
                 </span>
@@ -149,6 +164,7 @@
                     {{u}}: <img v-for="r in log" :key="r[2]" :src="r[13]"/>
                 </div>
             </div>
+            <img :src="currentSheetImage" class="sheet-image" @click.left="currentSheetImage = ''"/>
 
             <input type="checkbox" id="toggle" />
             <label for="toggle" class="checkable">
@@ -164,7 +180,7 @@
                     {{ guess[i] }}
                     <span v-for="group in boxes[guess[i]].groups" :key="group.blob">
                         <span v-for="r in group.rows" :key="r[2]" class="scans">
-                            <img :src="r[13]" />
+                            <img :src="r[13]" @click.right.prevent="showSheetImage('cr/page-'+group.rows[0][1]+'-'+group.rows[0][4]+'.jpg')"/>
                         </span>
                     </span>
                 </span>
@@ -232,6 +248,7 @@
             showAnnotations: false,
             guess: [], // field -> user -> guess
             status: 'Loading...',
+            currentSheetImage: '',
         }),
         mounted() {
             // hum vuejspython setup is actually async it seems -> should look at async components to be better integrated I think
@@ -316,6 +333,45 @@
             doInit() {
                 this.load_yaml_config()
             },
+            showSheetImage (imPath) {
+                this.currentSheetImage = this.project_path.replace(/^.*\/MC-Projects\//, './MC/') + '/' + imPath
+            },
+            keydown(ev) {
+                var k = ev.key
+                var prevDef = true
+                if (k === 'Escape') {
+                    this.loadBoth()
+                } else if (k === 'Backspace') {
+                    this.currentUser = 0
+                } else if (k === 'Enter') {
+                    // this.save()
+                } else if (k === 'ArrowUp') {
+                    this.currentUser = Math.max(this.currentUser - 1 , 0)
+                } else if (k === 'ArrowDown') {
+                    this.currentUser = Math.min(this.currentUser + 1, this.orderedUsers.length - 1)
+                } else if (k === 'ArrowLeft' || k === 'ArrowRight') {
+                    let f = this.currentField
+                    let u = this.orderedUsers[this.currentUser]
+                    let sug = this.cfg.fields.more[f].propositions
+                    let gotI = sug.indexOf(this.guess[f][u]) + (k === 'ArrowLeft' ? -1 : 1)
+                    let got = sug[(gotI + sug.length) % sug.length]
+                    if (got !== undefined) {
+                        this.guess = {...this.guess, [f]: {...this.guess[f], [u]: got}}
+                        //this.$set(this.guess[f], u, got)
+                    }
+                } else if (k === 'Tab') {
+                    this.currentField = Math.max(0, Math.min(this.fields.length, this.currentField + (ev.shiftKey ? -1 : 1)))
+                } else if (k === 'x') {
+                    //this.setCurrentToNoGuess()
+                } else {
+                    prevDef = false
+                    console.log('Unused event', ev)
+                }
+                if (prevDef) {
+                    ev.preventDefault()
+                }
+            },
+
         },
     })
 
@@ -324,6 +380,7 @@
         data: () => ({
             currentUnguessed: 1,
             displayForMiniset: false,
+            currentSheetImage: '',
         }),
         computed: {
             boxes: function() {
@@ -352,6 +409,9 @@
             },
         },
         methods: {
+            showSheetImage(imPath) {
+                this.currentSheetImage = this.project_path.replace(/^.*\/MC-Projects\//, './MC/') + '/' + imPath
+            },
             makeListForMiniset(bo, row) {
                 let targets = [row[1].toUpperCase(), row[2].toUpperCase()] // this is the non-generic line
                 let res = []
