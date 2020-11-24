@@ -28,6 +28,15 @@
             border: 1px solid black;
         }
 
+        .scroll-table {
+            overflow-y: auto;
+            height: 300px;
+        }
+        .scroll-table thead th {
+            position: sticky;
+            top: 0;
+        }
+
         /* shared */
 
         .annotated-box, .scans {
@@ -95,13 +104,13 @@
             <select v-if="cfg.fields" v-model="currentField">
                 <option v-for="(o,i) in fieldStringId" :value="i">{{o}}</option>
             </select>
-            »»»» <button @keydown="keydown($event)" :autofocus="'autofocus'">FOCUS</button> ««««
+            »»»» <button @keydown="keydown($event)" :autofocus="'autofocus'" ref="autofocus">FOCUS</button> ««««
             <label style="">
                 <input type="checkbox" v-model="showAnnotations"/>
                 <span>Show Annotations (toggle)</span>
             </label>
             <div class="for-table img1em" v-if="currentFieldDescription && boxes !== {}">
-                <table :class="{'sorting-table':true, 'hide-character-annotation': !showAnnotations}" ref="table">
+                <table :class="{'scroll-table': true, 'sorting-table':true, 'hide-character-annotation': !showAnnotations}" ref="table">
                     <thead>
                     <tr>
                         <th v-for="e in currentFieldDescription.propositions" :key="'th'+e"
