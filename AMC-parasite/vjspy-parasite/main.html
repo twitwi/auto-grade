@@ -267,7 +267,6 @@
                 if (boxes === undefined) return
                 if (boxes === {}) return
                 if (this.currentFieldDescription === null) return
-                if (boxes[this.currentField] === undefined) return
 
                 if (!(this.currentField in this.guess)) {
                     this.guess[this.currentField] = {}
@@ -276,6 +275,7 @@
                 let props = this.currentFieldDescription.propositions
                 let first = props[0]
                 suggestions = {DEFAULT: props}
+                console.log("DO GUESS")
                 for (let u of Object.keys(boxes)) {
                     if (!(u in g)) {
                         //g[u] = first
