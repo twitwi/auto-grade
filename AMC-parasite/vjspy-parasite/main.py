@@ -3,6 +3,7 @@ from vuejspython import model, start, atomic
 import config
 from tools_generic import read_config, parse_xlsx_first_page, parse_xlsx_generic, add_xlsx_sheet_keyed_by_examid
 from tools_images import load_images
+from tools_querysqlite import make_connection, get_scanzone_position
 
 import os
 import shutil
@@ -48,6 +49,11 @@ class ExamGrade:
         }
         #del self.raw_boxes[for_q]
         print(self.raw_boxes)
+
+    def load_scanzone_position(self, zoneid):
+        conn = make_connection(self.project_path + '/data/capture.sqlite')
+        bbox = get_scanzone_position(conn, zoneid)
+        return bbox
 
 @model
 class ExamIdentify:

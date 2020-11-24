@@ -19,3 +19,10 @@ def preload_all_queries(conn, more='', improcess=asbase64):
         r = r[:-1] + (improcess(r[-1]),)
         res[k].append(r)
     return res
+
+def get_scanzone_position(conn, zoneid):
+    c = conn.cursor()
+    c.execute('''SELECT MIN(x),MAX(x),MIN(y),MAX(y) FROM capture_position WHERE zoneid='''+str(zoneid))
+    res = c.fetchall()[0]
+    print(res)
+    return res
