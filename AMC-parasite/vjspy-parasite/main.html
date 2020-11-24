@@ -119,9 +119,11 @@
                         >|{{ e }}|</th>
                     </tr>
                     </thead>
+                    <tbody>
                     <tr v-for="(group, u) in boxes" :key="group.blob + '--' + u" :class="{current: orderedUsers[currentUser] === u}"
                         @click.right.prevent="showSheetImage('cr/page-'+u+'-'+boxes[u].group.rows[0][4]+'.jpg')">
-                    <td v-for="e in currentFieldDescription.propositions" :key="'td'+e">
+                    <td v-for="e in currentFieldDescription.propositions" :key="'td'+e"
+                        @click.left="affectGuess(currentField, u, e) ; currentUser = orderedUsers.indexOf(u) ; $refs.autofocus.focus()">
                         <span v-if="guess[currentField][u] === e" class="">
                             <span v-for="r in group.group.rows" :key="'character'+r[2]" class="annotated-box">
                                 <img :src="r[13]" /><span class="annotation">{{r[12]}}</span>
@@ -129,6 +131,7 @@
                         </span>
                     </td>
                     </tr>
+                    </tbody>
                 </table>
             </div>
             <img :src="currentSheetImage" class="sheet-image" @click.left="currentSheetImage = ''"/>
@@ -363,6 +366,9 @@
             showSheetImage (imPath) {
                 this.currentSheetImage = this.project_path.replace(/^.*\/MC-Projects\//, './MC/') + '/' + imPath
             },
+            affectGuess(f,u,g) {
+                this.$set(this.guess, f, { ...this.guess[f], [u]: g })
+            },
             keydown(ev) {
                 var k = ev.key
                 var prevDef = true
@@ -383,7 +389,7 @@
                     let gotI = sug.indexOf(this.guess[f][u]) + (k === 'ArrowLeft' ? -1 : 1)
                     let got = sug[(gotI + sug.length) % sug.length]
                     if (got !== undefined) {
-                        this.$set(this.guess, f, { ...this.guess[f], [u]: got })
+                        this.affectGuess(f, u, got)
                     }
                 } else if (k === 'Tab') {
                     this.currentField = Math.max(0, Math.min(this.fields.length, this.currentField + (ev.shiftKey ? -1 : 1)))
