@@ -90,7 +90,8 @@
     <script type="text/x-template" id="component-exam-grade">
         <div class="exam-grade">
             {{status}}
-            <button @click="load_yaml_config()">(re)load config.yaml</button>
+            <button @click="doInit()">(re) load config.yaml / parasite.xlsx</button>
+            <button @click="doSave()">...save</button>
             <select v-if="cfg.fields" v-model="currentField">
                 <option v-for="(o,i) in fieldStringId" :value="i">{{o}}</option>
             </select>
@@ -316,6 +317,7 @@
                 this.status = ''
                 let get = (d, name, q, min = 0, max = undefined) => ({ name, blob: name + '--' + q + '--' + min + '--' + max, rows: d.filter(r => r[7] === q).slice(min, max) })
                 let boxes = {}
+                console.log("PARSE BOXES")
                 Object.keys(data).forEach(u => {
                     let d = data[u]
                     boxes[u] = {
@@ -330,8 +332,24 @@
             },
         },
         methods: {
-            doInit() {
-                this.load_yaml_config()
+            async doInit() {
+                console.log("DOINIT")
+                await this.load_yaml_config()
+                console.log("DOINIT2")
+                let x = await this.load_xlsx()
+                console.log("DOINIT3", x)
+                for (let r of x) {
+                    let u = r[0]
+                    if (u === "examid") continue
+                    r.forEach((v, c) => {
+                        if (c == 0) return
+                        let fStrId = x[0][c]
+                        let f = this.fieldStringId.indexOf(fStrId)
+                        if (!(f in this.guess)) this.guess[f] = {}
+                        if (v === '=""') v = ''
+                        if (v !== null) this.guess[f][u] = v
+                    })
+                }
             },
             showSheetImage (imPath) {
                 this.currentSheetImage = this.project_path.replace(/^.*\/MC-Projects\//, './MC/') + '/' + imPath
@@ -356,8 +374,7 @@
                     let gotI = sug.indexOf(this.guess[f][u]) + (k === 'ArrowLeft' ? -1 : 1)
                     let got = sug[(gotI + sug.length) % sug.length]
                     if (got !== undefined) {
-                        this.guess = {...this.guess, [f]: {...this.guess[f], [u]: got}}
-                        //this.$set(this.guess[f], u, got)
+                        this.$set(this.guess, f, { ...this.guess[f], [u]: got })
                     }
                 } else if (k === 'Tab') {
                     this.currentField = Math.max(0, Math.min(this.fields.length, this.currentField + (ev.shiftKey ? -1 : 1)))
@@ -371,6 +388,45 @@
                     ev.preventDefault()
                 }
             },
+            doSave() {
+                this.saveXlsx(true)
+                this.saveXlsx()
+            },
+            saveXlsx(grade = false) {
+                let content = [...Array(this.guess.length).keys()].map(f => {
+                    let m = this.guess[f]
+                    console.log(f, m)
+                    if (m === undefined) return {}
+                    let map = {}
+                    Object.keys(m).forEach(k => {
+                        map[k] = m[k]
+                        if (map[k] == '') map[k] = '=""' // avoid getting null when loading back
+                        if (grade) {
+                            let suff = map[k].replace(/.*±/, '')
+                            if (suff !== map[k]) {
+                                map[k] = parseFloat(suff)
+                            } else {
+                                let ok = this.cfg.fields.more[f].ok
+                                if (ok === undefined) {
+                                    ok = this.cfg.fields.more[f].propositions[0]
+                                }
+                                map[k] = map[k] === ok ? 1 : 0
+                            }
+                        }
+                    })
+                    return map
+                })
+
+                let newSheet = {
+                    pro: this.projectDir,
+                    title: grade ? 'OCRGrade-%d' : 'OCR-%d',
+                    header: this.fieldStringId,
+                    content,
+                    callback: grade ? 'xlsx-saved' : 'on-xlsx-saved-save-xlsx-grade'
+                }
+                this.save_xlsx(newSheet)
+            },
+
 
         },
     })

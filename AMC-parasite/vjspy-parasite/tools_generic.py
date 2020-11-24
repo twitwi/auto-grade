@@ -31,8 +31,59 @@ def read_config(pro, filename='parasite.yaml', print=noop):
         withdef('headers/'+h, h)
     return cfg
 
+def parse_xlsx_generic(xlfile, sheet_index=0, sheet_name=None):
+    wb = openpyxl.load_workbook(filename = xlfile)
+    if sheet_name is None:
+        sheet_name = wb.sheetnames[sheet_index] 
+    ws = wb[sheet_name]
+    print(wb.sheetnames, sheet_index, sheet_name, ws)
+    res = []
+    for i, row in enumerate(ws.rows):
+        res.append(lmap(attr_value(), row))
+    return res
 
-def parse_xlsx(xlfile, data, header_names, log):
+def add_xlsx_sheet_keyed_by_examid(xlfile, data):
+    header = data['header']   # header[f]
+    content = data['content'] # content[f][u]
+
+    wb = openpyxl.load_workbook(filename = xlfile)
+
+    try:
+        stitle = 1
+        title = data['title'] % (stitle,)
+        format_title = True
+    except:
+        title = data['title']
+        format_title = False
+
+    if format_title:
+        for ititle in range(stitle, 1000): # force stop
+            title = data['title'] % (ititle,)
+            if title not in wb.sheetnames:
+                break
+
+    ws = wb.create_sheet(title=title)
+    ws.cell(row=1, column=1, value='examid')
+    for f, h in enumerate(header):
+        ws.cell(row=1, column=2+f, value=h)
+
+    users = sorted(list(set().union(*[[int(k) for k in mapp.keys()] for mapp in content])))
+    print(users)
+
+    print(content)
+
+    for i, u_int in enumerate(users):
+        u = str(u_int)
+        ws.cell(row=2+i, column=1, value=u)
+        for f, h in enumerate(header):
+            if f < len(content) and u in content[f]:
+                print(i,u,f,h,content[f][u])
+                ws.cell(row=2+i, column=2+f, value=content[f][u])
+
+    wb.save(xlfile)
+
+
+def parse_xlsx_first_page(xlfile, data, header_names, log):
     write = None
     should_save = False
     if 'write' in data: # supposing first and last names match (so already there)

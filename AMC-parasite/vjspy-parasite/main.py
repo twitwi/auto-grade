@@ -1,7 +1,7 @@
 
 from vuejspython import model, start, atomic
 import config
-from tools_generic import read_config, parse_xlsx
+from tools_generic import read_config, parse_xlsx_first_page, parse_xlsx_generic, add_xlsx_sheet_keyed_by_examid
 from tools_images import load_images
 
 import os
@@ -21,6 +21,20 @@ class ExamGrade:
     def load_yaml_config(self):
         self.cfg = read_config(self.project_path)
         fields = self.cfg['fields']
+
+    def load_xlsx(self):
+        headers = self.cfg['headers']
+        xlfile = self.project_path + '/parasite.xlsx'
+        dr = parse_xlsx_generic(xlfile, sheet_index=-1)
+        print(dr)
+        if dr[0][0] == 'examid':
+            return dr
+        return []
+
+    def save_xlsx(self, data):
+        headers = self.cfg['headers']
+        xlfile = self.project_path + '/parasite.xlsx'
+        add_xlsx_sheet_keyed_by_examid(xlfile, data)
 
     def load_boxes(self, for_q):
         fields = self.cfg['fields']
@@ -57,7 +71,7 @@ class ExamIdentify:
     def load_xlsx(self, data):
         headers = self.cfg['headers']
         xlfile = self.project_path + '/parasite.xlsx'
-        self.data_rows = parse_xlsx(xlfile, data, headers, lambda a,b: self.log(a, b))
+        self.data_rows = parse_xlsx_first_page(xlfile, data, headers, lambda a,b: self.log(a, b))
         #
         guess = {}
         for i,r in enumerate(self.data_rows):
@@ -71,7 +85,7 @@ class ExamIdentify:
             annotated_rows[ind][4] = int(self.guess[ind])
         headers = self.cfg['headers']
         xlfile = self.project_path + '/parasite.xlsx'
-        parse_xlsx(xlfile, {'write': annotated_rows}, headers, lambda a,b: self.log(a, b))
+        parse_xlsx_first_page(xlfile, {'write': annotated_rows}, headers, lambda a,b: self.log(a, b))
 
     def load_boxes(self):
         fields = self.cfg['fields']
