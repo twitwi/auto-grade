@@ -151,7 +151,7 @@
                         >|{{ e }}|</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody ref="userTable">
                     <tr v-for="(group, u) in boxes" :key="group.blob + '--' + u" :class="{current: orderedUsers[currentUser] === u}">
                     <td v-for="e in currentFieldDescription.propositions" :key="'td'+e"
                         @click.left="affectGuess(currentField, u, e)">
@@ -269,7 +269,7 @@
 <body>
     <div id="main">
         <h1>AMC Parasiting: {{project_path}}
-            <a v-for="(v,k) in {identify: 'Id', grade: 'Grade'}" :class="{'current-menu': tab=='exam-'+k}" @click="tab = 'exam-'+k">[{{v}}]</a>
+            <a v-for="(v,k) in {identify: 'Id', grade: 'Grade', more: 'More'}" :class="{'current-menu': tab=='exam-'+k}" @click="tab = 'exam-'+k">[{{v}}]</a>
         </h1>
 
         <exam-identify v-if="tab == 'exam-identify'" :project_path="project_full_path" @add-to-miniset="miniset.push($event)"></exam-identify>
@@ -296,7 +296,7 @@
     vuejspython.component('ExamGrade', 'exam-grade', {
         template: '#component-exam-grade',
         data: () => ({
-            currentField: 13,
+            currentField: 0,
             currentUser: 0,
             showAnnotations: false,
             guess: [], // field -> user -> guess
@@ -434,8 +434,10 @@
                     // this.save()
                 } else if (k === 'ArrowUp') {
                     this.currentUser = Math.max(this.currentUser - 1 , 0)
+                    this.$refs.userTable.children[this.currentUser].scrollIntoView({behavior: "smooth", block: "center", inline: "nearest"})
                 } else if (k === 'ArrowDown') {
                     this.currentUser = Math.min(this.currentUser + 1, this.orderedUsers.length - 1)
+                    this.$refs.userTable.children[this.currentUser].scrollIntoView({behavior: "smooth", block: "center", inline: "nearest"})
                 } else if (k === 'ArrowLeft' || k === 'ArrowRight') {
                     let f = this.currentField
                     let u = this.orderedUsers[this.currentUser]
@@ -445,6 +447,18 @@
                     if (got !== undefined) {
                         this.affectGuess(f, u, got)
                     }
+                } else if (k === 'a') {
+                    let f = this.currentField
+                    let u = this.orderedUsers[this.currentUser]
+                    let sug = this.cfg.fields.more[f].propositions
+                    let got = sug[0]
+                    this.affectGuess(f, u, got)
+                } else if (k === 'u') {
+                    let f = this.currentField
+                    let u = this.orderedUsers[this.currentUser]
+                    let sug = this.cfg.fields.more[f].propositions
+                    let got = sug[sug.length-1]
+                    this.affectGuess(f, u, got)
                 } else if (k === 'Tab') {
                     this.currentField = Math.max(0, Math.min(this.fields.length, this.currentField + (ev.shiftKey ? -1 : 1)))
                 } else if (k === 'x') {
