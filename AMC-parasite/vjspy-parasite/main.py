@@ -141,4 +141,4 @@ class AMCParasite:
 
 
 import sys
-start(AMCParasite(sys.argv))
+start(AMCParasite(sys.argv), http_host="0.0.0.0", py_host="0.0.0.0")
