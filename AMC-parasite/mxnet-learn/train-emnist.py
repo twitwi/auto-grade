@@ -300,7 +300,8 @@ minisets = [
     #    'miniset-2019-12-19--2019-infospichi-2',
     #    'miniset-2019-12-20--2019-ievgen',
     #    'miniset-2019-12-19--2019-network-1',
-    '../DATASET/merged-all-2019-2021'
+    #'../DATASET/merged-all-2019-2021',
+    './DATASET/merge-2019-2021-plus-digits-2021-12-13',
 ]
 
 # %%

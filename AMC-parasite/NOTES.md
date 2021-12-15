@@ -20,7 +20,7 @@ pip install mxnet
 in the AMC project, open amc-compiled.amc and copy/modify into the template parasite.yaml, helper:
 
 ~~~
-cat amc-compiled.amc |grep '^ - '
+cat amc-compiled.amc |grep '^ - ' | sed -e 's@0, ]@0]@g' -e 's@^ - @    - @g' |  awk 'BEGIN {out=0} /name: "sinfo",/ {if (out) { exit} else {print; next}} {out=1; print}'
 ~~~
 
 in the AMC project, put the list of student in parasite.xlsx (colonnes firstname/lastname/username/examid
@@ -30,6 +30,7 @@ in the AMC project, put the list of student in parasite.xlsx (colonnes firstname
 ~~~
 cd vjspy-parasite
 python3 main.py
+fff main.html
 ~~~
 
 <http://localhost:4260/main.html>

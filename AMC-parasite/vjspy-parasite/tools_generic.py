@@ -74,7 +74,7 @@ def add_xlsx_sheet_keyed_by_examid(xlfile, data):
 
     for i, u_int in enumerate(users):
         u = str(u_int)
-        ws.cell(row=2+i, column=1, value=u)
+        ws.cell(row=2+i, column=1, value=u_int)
         for f, h in enumerate(header):
             if f < len(content) and u in content[f]:
                 print(i,u,f,h,content[f][u])
