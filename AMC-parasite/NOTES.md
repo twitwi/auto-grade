@@ -29,14 +29,15 @@ in the AMC project, put the list of student in parasite.xlsx (colonnes firstname
 
 ~~~
 cd vjspy-parasite
+emacs config.py
 python3 main.py
-fff main.html
+#fixed the symlink issue so it is ok (but fixed in vuejspython locally pip installed only)
+#NOSERVE=1 python3 main.py
+#+
+#fff main.html
 ~~~
 
 <http://localhost:4260/main.html>
-
-
-works only for identification?
 
 
 ----
