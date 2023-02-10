@@ -151,6 +151,16 @@
                         >|{{ e }}|</th>
                     </tr>
                     </thead>
+                    <tfoot>
+                        <tr>
+                            <th v-for="e in currentFieldDescription.propositions" :key="'tf'+e"
+                            v-if="e.length === 1" title="add col. to miniset (shift to add all but this)"
+                            @click="addColumnToMiniset(currentField, e)"
+                            @click.shift="addColumnToMiniset(currentField, e, true)"
+                            >+ {{ e }}</th>
+                            <th v-else></th>
+                        </tr>
+                    </tfoot>
                     <tbody ref="userTable">
                     <tr v-for="(group, u) in boxes" :key="group.blob + '--' + u" :class="{current: orderedUsers[currentUser] === u}">
                     <td v-for="e in currentFieldDescription.propositions" :key="'td'+e"
@@ -372,6 +382,7 @@
                 let boxes = {}
                 console.log("PARSE BOXES")
                 Object.keys(data).forEach(u => {
+
                     let d = data[u]
                     boxes[u] = {
                         student: u,
@@ -420,6 +431,15 @@
                 if (refocus) {
                     this.currentUser = this.orderedUsers.indexOf(u)
                     this.focusKeyboardController()
+                }
+            },
+            addColumnToMiniset(f, t, neg=false) {
+                if (t.length !== 1) return
+                for (let u in this.guess[f]) {
+                    let ug = this.guess[f][u]
+                    if (neg != (ug !== t)) continue
+                    let g = this.boxes[u].group
+                    this.$emit('add-to-miniset', [ug[0], g.rows[0]])
                 }
             },
             keydown(ev) {
