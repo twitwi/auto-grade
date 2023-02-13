@@ -8,7 +8,7 @@ from torchvision.transforms import ToTensor
 
 def evaluate_accuracy(dataloader, model, label='Test', loss_fn=None):
     if label is not None:
-        print(label, end='')
+        print(label, end='', flush=True)
     correct, sumloss = 0, 0
     with torch.no_grad(): # do not compute gradient
         for X, y in dataloader:
@@ -26,7 +26,7 @@ def train_one_epoch(dataloader, model, loss_fn, optimizer, label="...", mod=100)
         print(f"Training {label}")
     for i,(X,y) in enumerate(dataloader):
         if (i+1)%mod == 0:
-            print(f'... done {i} minibatches')
+            print(f'... done {i+1} minibatches')
         pred = model(X)
         loss = loss_fn(pred, y)
         optimizer.zero_grad()
@@ -46,7 +46,7 @@ training_emnist_dataloader = DataLoader(training_emnist, batch_size=BS)
 test_emnist_dataloader = DataLoader(test_emnist, batch_size=BS)
 
 nn_loss = nn.CrossEntropyLoss()
-Act = nn.ReLU
+Act = nn.GELU
 model = nn.Sequential(
     nn.BatchNorm2d(1),
     nn.Conv2d(1, 128, kernel_size=5),
@@ -55,7 +55,7 @@ model = nn.Sequential(
     Act(),
     nn.Conv2d(128, 512, kernel_size=2),
     nn.BatchNorm2d(512),
-    nn.Dropout(0.5),
+    nn.Dropout(0.3),
     nn.MaxPool2d(2),
     Act(),
     nn.Flatten(),
