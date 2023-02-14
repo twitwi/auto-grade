@@ -145,18 +145,22 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 epochs = 5
 for t in range(epochs):
-    #train_one_epoch(training_emnist_dataloader, model, nn_loss, optimizer, f"emnist epoch {t+1}")
-    train_one_epoch(training_custom_dataloader, model, nn_loss, optimizer, f"custom epoch {t+1}")
-    
+    train_one_epoch(training_emnist_dataloader, model, nn_loss, optimizer, f"emnist epoch {t+1}")
     #evaluate_accuracy(training_emnist_dataloader, model, "emnist training set")
     evaluate_accuracy(test_emnist_dataloader, model, "emnist test set")
+    
+    train_one_epoch(training_custom_dataloader, model, nn_loss, optimizer, f"custom epoch {t+1}")
+    evaluate_accuracy(test_emnist_dataloader, model, "emnist test set")
+
     evaluate_accuracy(training_custom_dataloader, model, "custom training set")
     evaluate_accuracy(test_custom_dataloader, model, "custom test set")
 
-
-torch.save({
+    torch.save({
             'model': model.state_dict(),
             'optim': optimizer.state_dict(),
             'model_str': str(model),
             'loss_str': str(nn_loss),
             }, ',,autosave')
+    
+    model_scripted = torch.jit.script(model)
+    model_scripted.save(',,model_scripted.pt')
