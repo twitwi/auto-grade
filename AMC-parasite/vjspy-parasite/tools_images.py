@@ -24,9 +24,8 @@ def load_images(project_full_path, data):
     if 'prefix' in data:
         prefix = data['prefix']
     if predict:
-        modelname = 'mxnet6.model'
-        print("Loading MXNet model: "+modelname)
-        net = load_model(modelname)
+        modelname = 'model202302.pt'
+        load_model(modelname)
     print('...DONE')
     sub = 'images'
     directory = './generated/'+sub
