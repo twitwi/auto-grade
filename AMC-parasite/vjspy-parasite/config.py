@@ -22,7 +22,10 @@ local_MC = '/home/twilight/MC-Projects/'
 #default_project_dir = '2022-oi-4-rattr' #oiprev
 #default_project_dir = '2022-infospichi-1-exam'
 #default_project_dir = '2022-infospichi-2-2ndch'
-default_project_dir = '2022-oi-1-exam'
+#default_project_dir = '2022-oi-1-exam'
+#default_project_dir = '2022-infospichi-3-s4cm2'
+default_project_dir = '2022-infospichi-4-exam'
+#default_project_dir = '2022-pwa-1-final'
 
 our_classes = "=:;.,-_()[]!?*/'+⁹"
 emnist_classes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"

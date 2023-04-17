@@ -34,7 +34,9 @@ transform_custom = transforms.Compose([
 ])
 def bytes2im(byts):
     im = Image.open(io.BytesIO(byts)) #torchvision.io.read_image(io.BytesIO(byts))
+    import sys
     im = transform_custom(im)
+    #im = im / (im.median()+im.max()) * 2
     im = im.detach().numpy()
     #save_image(im[0])
     return im
