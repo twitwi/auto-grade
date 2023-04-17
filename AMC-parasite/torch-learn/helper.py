@@ -67,6 +67,15 @@ transform_custom = transforms.Compose([
     transforms.ToTensor(),
 ])
 
+transform_custom_train = transforms.Compose([
+    #polyfill.TrivialAugmentWide(), # not in old torchvision and no easy polyfill in the end
+    transforms.ColorJitter(brightness=.5, contrast=.5),
+    transforms.Grayscale(),
+    ####transforms.RandomResizedCrop(32, scale=(0.95, 1.05), ratio=(1., 1.)),
+    transforms.RandomResizedCrop(32, scale=(1, 1), ratio=(1., 1.)),
+    transforms.ToTensor(),
+])
+
 ## Loading from some image folders, from a closed class list.
 ## Ensures repeatable class and sample order.
 
@@ -108,7 +117,7 @@ def to_device(dataloader, dev):
 def load_custom_dataset(BS, dev, tiny=False, TEST_BS=None):
     if TEST_BS is None:
         TEST_BS = BS
-    custom_dataset = CustomImageFolder(root='DATA', transform=transform_custom)
+    custom_dataset = CustomImageFolder(root=',,customdataset', transform=transform_custom)
     custom_training_size = int(0.8 * len(custom_dataset))
     custom_test_size = len(custom_dataset) - custom_training_size
     fixed_random = dict(generator=torch.Generator().manual_seed(42000)) # fix the train/eval seed, never change this
@@ -118,6 +127,7 @@ def load_custom_dataset(BS, dev, tiny=False, TEST_BS=None):
             custom_test_size//10, custom_test_size - custom_test_size//10], **fixed_random)
     else:
         training_custom, test_custom = torch.utils.data.random_split(custom_dataset, [custom_training_size, custom_test_size], **fixed_random)
+    test_custom.dataset.transform = transform_custom_train
     training_custom_dataloader = to_device(DataLoader(training_custom, batch_size=BS), dev)
     test_custom_dataloader = to_device(DataLoader(test_custom, batch_size=TEST_BS), dev)
     return training_custom_dataloader, test_custom_dataloader
